@@ -162,7 +162,7 @@ class Environment:
 
         return False
 
-    def plot(self, ax=None, show=True):
+    def plot(self, ax=None, show=True, xlim=None, ylim=None, zlim=None):
         """Plot throw trajectory and ball
 
         :param ax: Current axis if a figure already exists
@@ -178,9 +178,20 @@ class Environment:
             ax = fig.add_subplot(projection='3d')
 
         # Set the limits to be environment ranges
-        ax.set_xlim([-self.dimensions[0]/2, self.dimensions[0]/2])
-        ax.set_ylim([-self.dimensions[1]/2, self.dimensions[1]/2])
-        ax.set_zlim([0, self.dimensions[2]])
+        if xlim is None:
+            ax.set_xlim([-self.dimensions[0]/2, self.dimensions[0]/2])
+        else:
+            ax.set_xlim(xlim)
+
+        if ylim is None:
+            ax.set_ylim([-self.dimensions[1]/2, self.dimensions[1]/2])
+        else:
+            ax.set_ylim(ylim)
+
+        if zlim is None:
+            ax.set_zlim([0, self.dimensions[2]])
+        else:
+            ax.set_zlim(zlim)
 
         if self.dynamic_objects:
             zmax = max([o.positions[:, 2].max()
@@ -190,9 +201,9 @@ class Environment:
         #ax.set_zlim([0, max(10, zmax)])
 
         # And set our labels
-        ax.set_xlabel('X [cm]')
-        ax.set_ylabel('Y [cm]')
-        ax.set_zlabel('Z [cm]')
+        ax.set_xlabel('X [mm]')
+        ax.set_ylabel('Y [mm]')
+        ax.set_zlabel('Z [mm]')
 
         for dynamic in self.dynamic_objects:
             # Plot Trajectory
@@ -208,3 +219,5 @@ class Environment:
 
         if show:
             plt.show()
+
+        return ax

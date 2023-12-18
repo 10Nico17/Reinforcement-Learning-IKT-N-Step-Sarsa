@@ -37,6 +37,7 @@ class Path:
     # within the max_distance starting with the helix_start voxel returns a list of tuples (x, y, z)
     def get_helix_voxels(self):
         helix = []
+        winning_voxels = []
         helix.append(self.helix_start)
 
         for i in range(self.resolution):
@@ -56,8 +57,10 @@ class Path:
                     for l in range(-self.max_distance, self.max_distance + 1):
                         if (x + k, y + j, z + l) not in helix:
                             helix.append((x + k, y + j, z + l))
+                            if (i >= self.resolution-((self.max_distance+1)*4)):
+                                winning_voxels.append((x + k, y + j, z + l))
 
-        return helix
+        return helix, winning_voxels
 
     # returns raw helix data
     def get_helix_data(self):
