@@ -65,7 +65,7 @@ class Environment:
 
         :rtype: None
         """
-        fps = 60
+        fps = 15
         dynamic_iter_per_frame = 10 * fps
 
         if duration is None:
@@ -88,7 +88,7 @@ class Environment:
                 self.robot.update_angles(next_q)
             self.plot(ax=ax, show=False)
 
-        fig = plt.figure(figsize=(8, 8))
+        fig = plt.figure(figsize=(20, 20))
         ax = fig.add_subplot(projection='3d')
         self.plot(ax=ax, show=False)
 
@@ -174,7 +174,7 @@ class Environment:
         :rtype: None
         """
         if ax is None:
-            fig = plt.figure(figsize=(12, 12))
+            fig = plt.figure(figsize=(20, 20))
             ax = fig.add_subplot(projection='3d')
 
         # Set the limits to be environment ranges

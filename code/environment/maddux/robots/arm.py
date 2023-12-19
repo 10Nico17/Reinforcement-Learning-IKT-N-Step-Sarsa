@@ -70,7 +70,7 @@ class Arm:
 
         :rtype: None
         """
-        self.update_angles(self.q0)
+        self.update_angles(self.q0, save=True)
 
     def get_current_joint_config(self):
         """Gets the current joint configuration from the links
