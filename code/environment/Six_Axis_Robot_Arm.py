@@ -57,9 +57,9 @@ class Six_Axis_Robot_Arm:
 
         # Do inverse kinematics for the starting position and
         # create a new arm with the starting position
-        starting_angles = self.__limit_angles(self.rob.ikine((self.path[0][0], self.path[1][0], self.path[2][0])))
+        self.starting_angles = self.__limit_angles(self.rob.ikine((self.path[0][0], self.path[1][0], self.path[2][0])))
         # Create arm
-        self.rob = Arm(links, starting_angles, '1-link')
+        self.rob = Arm(links, self.starting_angles, '1-link')
 
         self.env = Environment(dimensions=[1500.0, 1500.0, 1500.0],
                                robot=self.rob)
@@ -337,8 +337,7 @@ class Six_Axis_Robot_Arm:
         # Check for boundaries and reset if neccessary
         if self.__check_in_voxels() is False:
             # Go back to starting position
-            new_angles = self.rob.ikine((self.path[0][0], self.path[1][0], self.path[2][0]))
-            self.set_joint_angles_rad(new_angles)
+            self.set_joint_angles_rad(self.starting_angles)
             self.last_voxel = self.current_voxel
         # Check for win
         if self.__check_win() is True:
