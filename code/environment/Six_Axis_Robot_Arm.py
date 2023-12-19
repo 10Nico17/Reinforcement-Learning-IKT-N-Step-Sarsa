@@ -28,9 +28,13 @@ class Six_Axis_Robot_Arm:
         """
         # Create path for the robot
         path = Path(helix_start=starting_pos, max_distance=1)
-        self.voxels, self.winning_voxels = path.get_helix_voxels()
+        self.voxels, self.winning_voxels, self.rewards = path.get_helix_voxels()
         self.voxel_size = 1
         self.path = path.get_helix_data()
+        amount_voxels = len(self.voxels)
+
+        # Create hashtable of voxels with a unique index for each voxel
+        self.voxels_index_dict = {value: index for index, value in enumerate(self.voxels)}
 
         # Create a series of links (each link has one joint)
         # (theta, offset, length, twist, q_lim=None)
@@ -53,10 +57,9 @@ class Six_Axis_Robot_Arm:
 
         # Do inverse kinematics for the starting position and
         # create a new arm with the starting position
-        q0 = self.__limit_angles(self.rob.ikine((self.path[0][0], self.path[1][0], self.path[2][0])))
-        print(f"initial angles: {q0}")
+        starting_angles = self.__limit_angles(self.rob.ikine((self.path[0][0], self.path[1][0], self.path[2][0])))
         # Create arm
-        self.rob = Arm(links, q0, '1-link')
+        self.rob = Arm(links, starting_angles, '1-link')
 
         self.env = Environment(dimensions=[1500.0, 1500.0, 1500.0],
                                robot=self.rob)
@@ -64,16 +67,29 @@ class Six_Axis_Robot_Arm:
         # Create all possible actions
         # Define possible actions for each joint in deg
         # For now 1 degree per action, as the robot will take forever otherwise
-        joint_actions_deg = [-1, 0, 1]
+        joint_actions_deg = [-0.1, 0, 0.1]
         joint_actions_rad = np.array([self.__deg_to_rad(action) for action in joint_actions_deg])
 
         # Generate all possible action combinations for the 6 joints
         action_combinations = list(itertools.product(joint_actions_rad, repeat=6))
+        total_amount_actions = len(action_combinations)
 
         # Create a dictionary to map each combination to a unique integer
         self.actions_dict = {i: action for i, action in enumerate(action_combinations)}
         self.inv_actions_dict = {v: k for k, v in self.actions_dict.items()}
-        #print(self.actions_dict)
+
+        # Create Q
+        self.Q = -np.random.rand(amount_voxels, total_amount_actions)
+
+        # Set ending positions to zero in Q
+        for winning_voxel in self.winning_voxels:
+            self.Q[self.voxels_index_dict[winning_voxel]] = np.zeros(total_amount_actions)
+
+        # Create variable for voxel of current TCP position, so it only needs to be calculated
+        # when the TCP is changed
+        self.current_voxel = self.__get_tcp_voxel_position()
+        # Save last voxel to be able to set last Q
+        self.last_voxel = None
 
     def __deg_to_rad(self, deg: float) -> float:
         """Convert degree to radiants.
@@ -143,8 +159,7 @@ class Six_Axis_Robot_Arm:
         :return: Bool indicating if the TCP is in a winning voxel
         :rtype: bool
         """
-        voxel_pos = self.__get_tcp_voxel_position()
-        return voxel_pos in self.winning_voxels
+        return self.current_voxel in self.winning_voxels
 
     def __check_in_voxels(self) -> bool:
         """Check if the current position is in a voxel.
@@ -152,19 +167,24 @@ class Six_Axis_Robot_Arm:
         :return: Bool indicating if the TCP is in a voxel
         :rtype: bool
         """
-        voxel_pos = self.__get_tcp_voxel_position()
-        return voxel_pos in self.voxels
+        return self.current_voxel in self.voxels_index_dict
 
     def __get_reward(self) -> int:
         """Get the reward for the current position.
 
-        :return: Reward, -1 when we are not in a winning voxel, otherwise 0
+        :return: Reward, -1 when at the start, getting 0 linearly when getting closer to the target
         :rtype: int
         """
-        if self.__check_win() is True:
-            return 0
-        else:
-            return -1
+        # Get index of voxel and return reward
+        try:
+            current_voxel_index = self.voxels_index_dict[self.current_voxel]
+            return self.rewards[current_voxel_index]
+        except IndexError as e:
+            print(f"Index Error in Six_Axis_Robot_Arm.get_reward(): {e}")
+            return None
+        except ValueError as e:
+            print(f"Value Error in Six_Axis_Robot_Arm.get_reward(): {e}")
+            return None
 
     def get_joint_angles(self) -> (float, float, float, float, float, float):
         """Return current joint angles.
@@ -186,9 +206,7 @@ class Six_Axis_Robot_Arm:
         """
         # Convert degrees of angles to radiants
         angles_rad = np.array([self.__deg_to_rad(angle) for angle in angles])
-        # Limit angles to +-180°
-        angles_rad = self.__limit_angles(angles_rad)
-        self.rob.update_angles(angles_rad, save=True)
+        self.set_joint_angles_rad(angles_rad)
 
     def set_joint_angles_rad(self, angles: (float, float, float, float, float, float)) -> None:
         """Set joint angles.
@@ -201,6 +219,17 @@ class Six_Axis_Robot_Arm:
         # Limit angles to +-180°
         angles_rad = self.__limit_angles(angles)
         self.rob.update_angles(angles_rad, save=True)
+        self.last_voxel = self.current_voxel
+        self.current_voxel = self.__get_tcp_voxel_position()
+
+    def reset(self) -> None:
+        """Reset robot to starting state.
+
+        :return: None
+        """
+        self.rob.reset(save=False)
+        self.out_of_bounds_counter = 0
+        self.current_voxel = self.__get_tcp_voxel_position()
 
     def get_random_action(self) -> ((float, float, float, float, float, float), int):
         """Get a random action from all actions.
@@ -212,6 +241,55 @@ class Six_Axis_Robot_Arm:
         x = np.random.randint(len(self.actions_dict))
         return self.actions_dict[x], x
 
+    def get_current_qs(self) -> list[float]:
+        """Get the q values for the current state.
+
+        :return: List of q values
+        :rtype: list of float
+        """
+        # Return the value of Q at the index of the current voxel in the index dict
+        return self.Q[self.voxels_index_dict[self.current_voxel]]
+
+    def get_current_q(self, action: int) -> float:
+        """Get the q value for the current state and a specific action.
+
+        :param action: Action index for the action dict
+        :type action: int
+
+        :return: Q value
+        :rtype: float
+        """
+        # Return the value of Q at the index of the current voxel in the index dict
+        return self.Q[self.voxels_index_dict[self.current_voxel]][action]
+
+    def set_current_q(self, action: int, q: float) -> None:
+        """Set a q value for the current state.
+
+        :param action: Action index for the action dict
+        :type action: int
+
+        :param new_q: new Q value to set
+        :type new_q: float
+
+        :return: None
+        """
+        # Set the value of Q at the index of the current voxel in the index dict
+        self.Q[self.voxels_index_dict[self.current_voxel]][action] = q
+
+    def set_last_q(self, action: int, q: float) -> None:
+        """Set a q value for the state before the current state.
+
+        :param action: Action index for the action dict
+        :type action: int
+
+        :param new_q: new Q value to set
+        :type new_q: float
+
+        :return: None
+        """
+        # Set the value of Q at the index of the current voxel in the index dict
+        self.Q[self.voxels_index_dict[self.last_voxel]][action] = q
+
     def get_action_dict(self) -> dict:
         """Get the dict containing all actions (action_number : action).
 
@@ -219,6 +297,17 @@ class Six_Axis_Robot_Arm:
         :rtype: dict
         """
         return self.actions_dict
+
+    def get_action_from_dict(self, action: int) -> (float, float, float, float, float):
+        """Get action from the actions dict.
+
+        :param action: Action index for the action dict
+        :type action: int
+
+        :return: Tuple with action
+        :rtype: (float, float, float, float, float)
+        """
+        return self.actions_dict[action]
 
     def get_inverse_action_dict(self) -> dict:
         """Get the inverse dict containing all actions (action : action_number).
@@ -231,7 +320,7 @@ class Six_Axis_Robot_Arm:
     def do_move(self, action: int) -> ((int, int, int), int, bool):
         """Move the robot based on the action.
 
-        :param action: Action from the action dict.
+        :param action: Action index for the action dict
                        Action dict can be obtained with get_action_dict()
                        Inverse action dict can be obtained with get_inverse_action_dict()
         :type action: int
@@ -246,11 +335,11 @@ class Six_Axis_Robot_Arm:
         self.set_joint_angles_rad(new_angles)
 
         # Check for boundaries and reset if neccessary
-        #if self.__check_in_voxels() is False:
-        #    # Go back to starting position
-        #    print(f" not in voxels! ")
-        #    new_angles = self.rob.ikine((self.path[0][0], self.path[1][0], self.path[2][0]))
-        #    self.set_joint_angles_rad(new_angles)
+        if self.__check_in_voxels() is False:
+            # Go back to starting position
+            new_angles = self.rob.ikine((self.path[0][0], self.path[1][0], self.path[2][0]))
+            self.set_joint_angles_rad(new_angles)
+            self.last_voxel = self.current_voxel
         # Check for win
         if self.__check_win() is True:
             win = True
@@ -310,25 +399,10 @@ class Six_Axis_Robot_Arm:
         plt.show()
 
     def animate(self) -> None:
-        """Animate robot. Needs to be called last
+        """Animate robot.
+
+        Needs to be called last.
 
         :return: None
         """
         self.env.animate()
-
-
-#arm = Six_Axis_Robot_Arm()
-#move = (3**6-1) / 2 + 2
-#print(f"doing move: {arm.get_action_dict()[move]}")
-#for i in range(100):
-    #print(f"action: {arm.get_random_action()}")
-    #action, action_number = arm.get_random_action()
-#    arm.do_move(move)
-#arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
-#print("\n\nDone\n\n")
-#arm.animate()
-
-# Optimize space:
-# 1) All voxels with every decision at every voxel
-# 2) All vocels only with evry decision at the needed voxels
-# 3) Only define the coordinate of the voxels needed in an array, sort that array and use binary search for every decision in that array

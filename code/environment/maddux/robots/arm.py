@@ -65,12 +65,15 @@ class Arm:
         # Set the arm to its default position
         self.reset()
 
-    def reset(self):
+    def reset(self, save=True):
         """Resets the arm back to its resting state, i.e. q0
 
         :rtype: None
         """
-        self.update_angles(self.q0, save=True)
+        self.update_angles(self.q0, save=save)
+        if save is False:
+            # reset Qs
+            self.qs = np.array([self.q0.copy()])
 
     def get_current_joint_config(self):
         """Gets the current joint configuration from the links

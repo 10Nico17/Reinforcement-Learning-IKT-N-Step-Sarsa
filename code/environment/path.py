@@ -38,7 +38,12 @@ class Path:
     def get_helix_voxels(self):
         helix = []
         winning_voxels = []
+        rewards = []
         helix.append(self.helix_start)
+        # generate a reward system that gets lower the closer we get to the finish
+        # starting reward
+        current_reward = -1.0
+        reward_win = 0.0
 
         for i in range(self.resolution):
             t = self.par_space / self.resolution * i
@@ -57,10 +62,13 @@ class Path:
                     for l in range(-self.max_distance, self.max_distance + 1):
                         if (x + k, y + j, z + l) not in helix:
                             helix.append((x + k, y + j, z + l))
+                            rewards.append(current_reward)
                             if (i >= self.resolution-((self.max_distance+1)*4)):
                                 winning_voxels.append((x + k, y + j, z + l))
 
-        return helix, winning_voxels
+            current_reward += 1 / self.resolution
+
+        return helix, winning_voxels, rewards
 
     # returns raw helix data
     def get_helix_data(self):
