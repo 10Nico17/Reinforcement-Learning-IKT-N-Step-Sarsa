@@ -2,24 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 sys.path.append('./environment')
-import Six_Axis_Robot_Arm as bot
-#pos = (-480, -30, 7)
-#arm.set_joint_angles_rad(arm.rob.ikine(pos))
-#tcp = arm.rob.fkine()
-#x = tcp[0, 3]
-#y = tcp[1, 3]
-#z = tcp[2, 3]
-#print(f"Reward for: {(x, y, z)}: ")
-#print(f"{arm.get_reward()}")
-#move = (3**6-1) / 2 + 2
-#print(f"doing move: {arm.get_action_dict()[move]}")
-#for i in range(100):
-    #print(f"action: {arm.get_random_action()}")
-    #action, action_number = arm.get_random_action()
-#    arm.do_move(move)
-#arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
-#print("\n\nDone\n\n")
-#arm.animate()
+#import Six_Axis_Robot_Arm as bot
+import Three_Axis_Robot_Arm as bot
+
+# suppress scientific notation
+np.set_printoptions(suppress=True)
 
 
 def get_action_epsilon_greedy(robot, epsilon: float = 0.1) -> int:
@@ -74,22 +61,20 @@ def sarsa(robot, num_episodes, alpha=0.1, gamma=1.0, epsilon=0.1):
             current_action_index = new_action_index
             current_action = new_action
             i+=1
-            if (i % 100 == 0):
-                print(f"Current_iteration {i} in episode {episode}, current_pos {new_pos}")
-                #robot.show(draw_path=True, draw_voxels=True, zoom_path=True)
             if (i % 10000 == 0):
-                print(f"Current_iteration {i} in episode {episode}, current_pos {new_pos}")
+                print(f"Current_iteration {i} in episode {episode}, current_pos {new_pos}, Out of bounds: {robot.out_of_bounds_counter}")
                 #robot.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
         episode_lengths.append(i)
         print(f"Episode {episode} ended with length {i}")
     return episode_lengths
 
-arm = bot.Six_Axis_Robot_Arm()
+#arm = bot.Six_Axis_Robot_Arm()
+arm = bot.Three_Axis_Robot_Arm()
 #arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
 num_episodes = 1000
-alpha = 1/100
+alpha = 1/10
 gamma = 0.99
 epsilon = 0.1
 

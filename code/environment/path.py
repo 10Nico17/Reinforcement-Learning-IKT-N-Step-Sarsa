@@ -17,9 +17,11 @@ class Path:
         # defines resolution of helix generation
         self.resolution = 1000
 
-        self.helix_scale = "mm"
+        self.helix_scale = "dmm"
 
-        if self.helix_scale == "mm":
+        if self.helix_scale == "dmm":
+            self.helix_factor = 100
+        elif self.helix_scale == "mm":
             self.helix_factor = 10
         elif self.helix_scale == "cm":
             self.helix_factor = 1
@@ -36,6 +38,7 @@ class Path:
     # returns the coordinates of the center of all the voxels that are on the trajectory or 
     # within the max_distance starting with the helix_start voxel returns a list of tuples (x, y, z)
     def get_helix_voxels(self):
+        print(f"Calculating Helix Voxels")
         helix = []
         winning_voxels = []
         rewards = []
@@ -67,7 +70,10 @@ class Path:
                                 winning_voxels.append((x + k, y + j, z + l))
 
             current_reward += 1 / self.resolution
+            if (((i/self.resolution) * 100) % 5) == 0:
+                print(f"\rProcess: {(i/self.resolution)*100}%\r", end='')
 
+        print("")
         return helix, winning_voxels, rewards
 
     # returns raw helix data

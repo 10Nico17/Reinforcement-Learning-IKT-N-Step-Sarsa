@@ -15,14 +15,14 @@ import itertools
 np.set_printoptions(suppress=True)
 
 
-class Six_Axis_Robot_Arm:
+class Three_Axis_Robot_Arm:
     """Class simulating the robot arm."""
 
-    def __init__(self, starting_pos: (float, float, float) = (-500, 0, 0)) -> None:
+    def __init__(self, starting_pos: (float, float, float) = (-5000, 0, 0)) -> None:
         """Initialize robot arm.
 
         :param initial_angles: Tuple with the initial angles of the robot joints in degrees
-        :type initial_angles: (float, float, float, float, float, float)
+        :type initial_angles: (float, float, float)
 
         :param path: Coordinates of path to draw
         :type path: list of touples of ints
@@ -30,7 +30,7 @@ class Six_Axis_Robot_Arm:
         :return: None
         """
         # Create path for the robot
-        path = Path(helix_start=starting_pos, max_distance=1)
+        path = Path(helix_start=starting_pos, max_distance=2)
         self.voxels, self.winning_voxels, self.rewards = path.get_helix_voxels()
         self.voxel_size = 1
         self.path = path.get_helix_data()
@@ -41,30 +41,30 @@ class Six_Axis_Robot_Arm:
 
         # Create a series of links (each link has one joint)
         # (theta, offset, length, twist, q_lim=None)
-        L1 = Link(0, 151.85, 0, 1.570796327, link_size=5)
-        L2 = Link(0, 0, -243.55, 0, link_size=4)
-        L3 = Link(0, 0, -213.2, 0, link_size=4)
-        L4 = Link(0, 131.05, 0, 1.570796327, link_size=3)
-        L5 = Link(0, 85.35, 0, -1.570796327, link_size=2)
-        L6 = Link(0, 92.1, 0, 0, link_size=0.1)
-        links = np.array([L1, L2, L3, L4, L5, L6])
+        L1 = Link(0, 1518.5, 0, 1.570796327, link_size=50)
+        L2 = Link(0, 0, -3000.0, 0, link_size=40)
+        L3 = Link(0, 0, -3000.0, 0, link_size=5)
+        links = np.array([L1, L2, L3])
 
         # Caculate starting angles from starting position and
         # convert degrees of starting position to radiants
 
         # Initial arm angles
-        q0 = np.array((0, 0, 0, 0, 0, 0))
+        q0 = np.array((0, 0, 0))
 
         # Create arm
         self.rob = Arm(links, q0, '1-link')
 
         # Do inverse kinematics for the starting position and
         # create a new arm with the starting position
-        self.starting_angles = self.__limit_angles(self.rob.ikine((self.path[0][0], self.path[1][0], self.path[2][0])))
+        self.starting_angles = self.rob.ikine((self.path[0][0], self.path[1][0], self.path[2][0]))
+        # do mod 2pi to starting angles to not get crazy large angles
+        self.starting_angles = np.array([angle % (2*np.pi) for angle in self.starting_angles])
+        #self.starting_angles = self.__limit_angles(self.rob.ikine((self.path[0][0], self.path[1][0], self.path[2][0])))
         # Create arm
         self.rob = Arm(links, self.starting_angles, '1-link')
 
-        self.env = Environment(dimensions=[1500.0, 1500.0, 1500.0],
+        self.env = Environment(dimensions=[15000.0, 15000.0, 15000.0],
                                robot=self.rob)
 
         # Create all possible actions
@@ -73,8 +73,8 @@ class Six_Axis_Robot_Arm:
         joint_actions_deg = [-0.1, 0, 0.1]
         joint_actions_rad = np.array([self.__deg_to_rad(action) for action in joint_actions_deg])
 
-        # Generate all possible action combinations for the 6 joints
-        action_combinations = list(itertools.product(joint_actions_rad, repeat=6))
+        # Generate all possible action combinations for the 3 joints
+        action_combinations = list(itertools.product(joint_actions_rad, repeat=3))
         total_amount_actions = len(action_combinations)
 
         # Create a dictionary to map each combination to a unique integer
@@ -93,6 +93,9 @@ class Six_Axis_Robot_Arm:
         self.current_voxel = self.__get_tcp_voxel_position()
         # Save last voxel to be able to set last Q
         self.last_voxel = None
+
+        # Init out of bounds counter
+        self.out_of_bounds_counter = 0
 
     def __deg_to_rad(self, deg: float) -> float:
         """Convert degree to radiants.
@@ -125,14 +128,14 @@ class Six_Axis_Robot_Arm:
         :return: Limited angle in radiants
         :rtype: float
         """
-        if angle > np.pi:
+        if angle > np.pi/2:
             return np.pi
         if angle < -np.pi:
             return -np.pi
         return angle
 
-    def __limit_angles(self, angles: (float, float, float, float, float, float)
-                       ) -> (float, float, float, float, float, float):
+    def __limit_angles(self, angles: (float, float, float)
+                       ) -> (float, float, float):
         """Limit angles of the robot (in rad) to +-pi (+-180°).
 
         :param rad: Angles in radiants
@@ -141,7 +144,12 @@ class Six_Axis_Robot_Arm:
         :return: Limited angles in radiants
         :rtype: float
         """
-        return np.array([self.__limit_angle(angle) for angle in angles])
+        # Substract starting angles to start in the middle
+        angles_relation_to_start = angles - self.starting_angles
+        # Limit angles
+        limited_angles = np.array([self.__limit_angle(angle) for angle in angles_relation_to_start])
+        # Add to starting angles
+        return limited_angles + self.starting_angles
 
     def __get_tcp_voxel_position(self) -> (int, int, int):
         """Get voxel the TCP is in.
@@ -150,10 +158,10 @@ class Six_Axis_Robot_Arm:
         :rtype: (int, int, int)
         """
         # Compute forward kinematics to receive current TCP
-        tcp = self.rob.fkine()
-        x = tcp[0, 3]
-        y = tcp[1, 3]
-        z = tcp[2, 3]
+        tcp = self.rob.end_effector_position()
+        x = tcp[0]
+        y = tcp[1]
+        z = tcp[2]
         return (int(round(x, 0)), int(round(y, 0)), int(round(z, 0)))
 
     def __check_win(self) -> bool:
@@ -189,21 +197,31 @@ class Six_Axis_Robot_Arm:
             print(f"Value Error in Six_Axis_Robot_Arm.get_reward(): {e}")
             return None
 
-    def get_joint_angles(self) -> (float, float, float, float, float, float):
+    def get_joint_angles(self) -> (float, float, float):
         """Return current joint angles.
 
         :return: Tuple with the current angles of the robot joints in degrees
-        :rtype: (float, float, float, float, float, float)
+        :rtype: (float, float, float)
 
         :return: None
         """
         return np.array([self.__rad_to_deg(angle) for angle in self.rob.get_current_joint_config()])
 
-    def set_joint_angles_degrees(self, angles: (float, float, float, float, float, float)) -> None:
+    def get_joint_angles_rad(self) -> (float, float, float):
+        """Return current joint angles.
+
+        :return: Tuple with the current angles of the robot joints in degrees
+        :rtype: (float, float, float)
+
+        :return: None
+        """
+        return self.rob.get_current_joint_config()
+
+    def set_joint_angles_degrees(self, angles: (float, float, float), save=False) -> None:
         """Set joint angles.
 
         :param angles: Tuple with the angles for the robot joints in degrees
-        :type angles: (float, float, float, float, float, float)
+        :type angles: (float, float, float)
 
         :return: None
         """
@@ -211,17 +229,17 @@ class Six_Axis_Robot_Arm:
         angles_rad = np.array([self.__deg_to_rad(angle) for angle in angles])
         self.set_joint_angles_rad(angles_rad)
 
-    def set_joint_angles_rad(self, angles: (float, float, float, float, float, float)) -> None:
+    def set_joint_angles_rad(self, angles: (float, float, float), save=False) -> None:
         """Set joint angles.
 
         :param angles: Tuple with the angles for the robot joints in radiants
-        :type angles: (float, float, float, float, float, float)
+        :type angles: (float, float, float)
 
         :return: None
         """
         # Limit angles to +-180°
         angles_rad = self.__limit_angles(angles)
-        self.rob.update_angles(angles_rad, save=True)
+        self.rob.update_angles(angles_rad, save=save)
         self.last_voxel = self.current_voxel
         self.current_voxel = self.__get_tcp_voxel_position()
 
@@ -234,12 +252,12 @@ class Six_Axis_Robot_Arm:
         self.out_of_bounds_counter = 0
         self.current_voxel = self.__get_tcp_voxel_position()
 
-    def get_random_action(self) -> ((float, float, float, float, float, float), int):
+    def get_random_action(self) -> ((float, float, float), int):
         """Get a random action from all actions.
 
         :return: Tuple containing the action and the unique integer representing the action in the
                  actions dict
-        :rtype: ((float, float, float, float, float, float), int)
+        :rtype: ((float, float, float), int)
         """
         x = np.random.randint(len(self.actions_dict))
         return self.actions_dict[x], x
@@ -301,7 +319,7 @@ class Six_Axis_Robot_Arm:
         """
         return self.actions_dict
 
-    def get_action_from_dict(self, action: int) -> (float, float, float, float, float, float):
+    def get_action_from_dict(self, action: int) -> (float, float, float):
         """Get action from the actions dict.
 
         :param action: Action index for the action dict
@@ -340,6 +358,7 @@ class Six_Axis_Robot_Arm:
         # Check for boundaries and reset if neccessary
         if self.__check_in_voxels() is False:
             # Go back to starting position
+            self.out_of_bounds_counter += 1
             self.set_joint_angles_rad(self.starting_angles)
             self.last_voxel = self.current_voxel
         # Check for win
@@ -466,3 +485,16 @@ class Six_Axis_Robot_Arm:
                                      path=self.path, voxels=self.voxels,
                                      winning_voxels=self.winning_voxels,
                                      fps=fps, save_path=save_path)
+
+
+rob = Three_Axis_Robot_Arm()
+
+step_size = 10
+
+#for i in range(0, len(rob.path[0]), step_size):
+#    print(f"Iteration: {i/step_size} of {len(rob.path[0])/step_size}")
+#    angles = rob.rob.ikine((rob.path[0][i], rob.path[1][i], rob.path[2][i]), set_robot=False)
+#    rob.set_joint_angles_rad(angles, save=True)
+
+rob.show(draw_path=True, draw_voxels=True, zoom_path=True)
+#rob.animate(zoom_path=True, draw_voxels=True, draw_path=True, fps=20)

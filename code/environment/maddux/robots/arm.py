@@ -236,7 +236,7 @@ class Arm:
         t = t * self.tool
         return t
 
-    def ikine(self, p, num_iterations=1000, alpha=0.1):
+    def ikine(self, p, num_iterations=1000, alpha=0.1, set_robot=False):
         """Computes the inverse kinematics to find the correct joint
         configuration to reach a given point
 
@@ -259,7 +259,8 @@ class Arm:
             alpha = 0.1
 
         q = self.get_current_joint_config()
-        self.qs = np.array([q.copy()])
+        if set_robot is True:
+            self.qs = np.array([q.copy()])
 
         goal = utils.create_homogeneous_transform_from_point(p)
         for i in range(num_iterations):
@@ -278,7 +279,8 @@ class Arm:
             delta_q = np.linalg.pinv(vel_J) * err
             delta_q = np.squeeze(np.asarray(delta_q))
             q = q + (alpha * delta_q.flatten())
-            self.qs = np.vstack((self.qs, q.copy()))
+            if set_robot is True:
+                self.qs = np.vstack((self.qs, q.copy()))
 
             if abs(np.linalg.norm(err)) <= 1e-6:
                 return q

@@ -54,7 +54,7 @@ class Environment:
             if self.collision():
                 break
 
-    def animate(self, duration=None, save_path=None):
+    def animate(self, duration=None, save_path=None, xlim=None, ylim=None, zlim=None, path=None, voxels=None, winning_voxels=None, fps=30):
         """Animates the running of the program
 
         :param duration: (Optional) Duration of animation in seconds
@@ -65,7 +65,7 @@ class Environment:
 
         :rtype: None
         """
-        fps = 15
+        fps = fps
         dynamic_iter_per_frame = 10 * fps
 
         if duration is None:
@@ -86,11 +86,57 @@ class Environment:
             if self.robot is not None:
                 next_q = self.robot.qs[i]
                 self.robot.update_angles(next_q)
-            self.plot(ax=ax, show=False)
+            self.plot(ax=ax, show=False, xlim=xlim, ylim=ylim, zlim=zlim)
+
+            if path is not None:
+                ax.plot(path[0], path[1], path[2], color='red')
+
+            if voxels is not None:
+                x = []
+                y = []
+                z = []
+                for voxel in voxels:
+                    x.append(voxel[0])
+                    y.append(voxel[1])
+                    z.append(voxel[2])
+                ax.scatter(x, y, z, marker=".", s=2, color='cyan')
+
+            if winning_voxels is not None:
+                x = []
+                y = []
+                z = []
+                for voxel in winning_voxels:
+                    x.append(voxel[0])
+                    y.append(voxel[1])
+                    z.append(voxel[2])
+                ax.scatter(x, y, z, marker=".", s=2.5, color='red')
 
         fig = plt.figure(figsize=(20, 20))
         ax = fig.add_subplot(projection='3d')
-        self.plot(ax=ax, show=False)
+        self.plot(ax=ax, show=False, xlim=xlim, ylim=ylim, zlim=zlim)
+
+        if path is not None:
+            ax.plot(path[0], path[1], path[2], color='red')
+
+        if voxels is not None:
+            x = []
+            y = []
+            z = []
+            for voxel in voxels:
+                x.append(voxel[0])
+                y.append(voxel[1])
+                z.append(voxel[2])
+            ax.scatter(x, y, z, marker=".", s=2, color='cyan')
+
+        if winning_voxels is not None:
+            x = []
+            y = []
+            z = []
+            for voxel in winning_voxels:
+                x.append(voxel[0])
+                y.append(voxel[1])
+                z.append(voxel[2])
+            ax.scatter(x, y, z, marker=".", s=2.5, color='red')
 
         # If we don't assign its return to something, it doesn't run.
         # Seems like really weird behavior..
@@ -198,12 +244,11 @@ class Environment:
                         for o in self.dynamic_objects])
         else:
             zmax = 10
-        #ax.set_zlim([0, max(10, zmax)])
 
         # And set our labels
-        ax.set_xlabel('X [mm]')
-        ax.set_ylabel('Y [mm]')
-        ax.set_zlabel('Z [mm]')
+        ax.set_xlabel('X [m*(10^-4)]')
+        ax.set_ylabel('Y [m*(10^-4)]')
+        ax.set_zlabel('Z [m*(10^-4)]')
 
         for dynamic in self.dynamic_objects:
             # Plot Trajectory
