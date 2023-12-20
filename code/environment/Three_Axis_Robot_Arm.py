@@ -70,7 +70,7 @@ class Three_Axis_Robot_Arm:
         # Create all possible actions
         # Define possible actions for each joint in deg
         # For now 1 degree per action, as the robot will take forever otherwise
-        joint_actions_deg = [-0.1, 0, 0.1]
+        joint_actions_deg = [-0.01, 0, 0.01]
         joint_actions_rad = np.array([self.__deg_to_rad(action) for action in joint_actions_deg])
 
         # Generate all possible action combinations for the 3 joints
@@ -406,7 +406,7 @@ class Three_Axis_Robot_Arm:
                 x.append(voxel[0])
                 y.append(voxel[1])
                 z.append(voxel[2])
-            ax.scatter(x, y, z, marker=".", s=2, color='cyan')
+            ax.scatter(x, y, z, marker=".", s=2, cmap=plt.get_cmap('hot'), c=self.rewards)
 
             x = []
             y = []
@@ -487,14 +487,14 @@ class Three_Axis_Robot_Arm:
                                      fps=fps, save_path=save_path)
 
 
-rob = Three_Axis_Robot_Arm()
-
-step_size = 10
-
-#for i in range(0, len(rob.path[0]), step_size):
-#    print(f"Iteration: {i/step_size} of {len(rob.path[0])/step_size}")
-#    angles = rob.rob.ikine((rob.path[0][i], rob.path[1][i], rob.path[2][i]), set_robot=False)
-#    rob.set_joint_angles_rad(angles, save=True)
-
-rob.show(draw_path=True, draw_voxels=True, zoom_path=True)
+#rob = Three_Axis_Robot_Arm()
+#
+#step_size = 10
+#
+##for i in range(0, len(rob.path[0]), step_size):
+##    print(f"Iteration: {i/step_size} of {len(rob.path[0])/step_size}")
+##    angles = rob.rob.ikine((rob.path[0][i], rob.path[1][i], rob.path[2][i]), set_robot=False)
+##    rob.set_joint_angles_rad(angles, save=True)
+#
+#rob.show(draw_path=True, draw_voxels=True, zoom_path=True)
 #rob.animate(zoom_path=True, draw_voxels=True, draw_path=True, fps=20)

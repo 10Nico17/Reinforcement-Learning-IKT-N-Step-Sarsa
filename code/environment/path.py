@@ -39,13 +39,13 @@ class Path:
     # within the max_distance starting with the helix_start voxel returns a list of tuples (x, y, z)
     def get_helix_voxels(self):
         print(f"Calculating Helix Voxels")
-        helix = []
+        elements = []
         winning_voxels = []
         rewards = []
-        helix.append(self.helix_start)
+        current_reward = -1.0
+        elements.append((self.helix_start, current_reward))
         # generate a reward system that gets lower the closer we get to the finish
         # starting reward
-        current_reward = -1.0
         reward_win = 0.0
 
         for i in range(self.resolution):
@@ -59,21 +59,40 @@ class Path:
             y = int(round(y / self.voxel_size))
             z = int(round(z / self.voxel_size))
 
-            # add adjacent voxels to the helix list
+            # add adjacent voxels to the elements list
             for k in range(-self.max_distance, self.max_distance + 1):
                 for j in range(-self.max_distance, self.max_distance + 1):
                     for l in range(-self.max_distance, self.max_distance + 1):
-                        if (x + k, y + j, z + l) not in helix:
-                            helix.append((x + k, y + j, z + l))
-                            rewards.append(current_reward)
-                            if (i >= self.resolution-((self.max_distance+1)*4)):
-                                winning_voxels.append((x + k, y + j, z + l))
+                        #if (x + k, y + j, z + l) not in helix:
+                        elements.append(((x + k, y + j, z + l), current_reward))
+                        if (i >= self.resolution-((self.max_distance+4))):
+                            winning_voxels.append((x + k, y + j, z + l))
 
             current_reward += 1 / self.resolution
-            if (((i/self.resolution) * 100) % 5) == 0:
-                print(f"\rProcess: {(i/self.resolution)*100}%\r", end='')
+            if ((((i/self.resolution) + 0.01) * 100) % 5) == 0:
+                print(f"\rProcess: {int((i/self.resolution)*100)}%\r", end='')
 
-        print("")
+        print(f"Process: 100%")
+
+        # Sort out dual winning voxels
+        print("Removing double elements ")
+        winning_voxels = list(dict.fromkeys(winning_voxels))
+
+        helix = []
+        rewards = []
+
+        seen = set()
+
+        for i, element in enumerate(elements):
+            coords, reward = element
+            print(f"\rProcess: {int((i/len(elements))*100)}%\r", end='')
+            if coords not in seen:
+                seen.add(coords)
+                helix.append(coords)
+                rewards.append(reward)
+
+        print(f"Process: 100%")
+
         return helix, winning_voxels, rewards
 
     # returns raw helix data
