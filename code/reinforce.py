@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+import time
 sys.path.append('./environment')
 #import Six_Axis_Robot_Arm as bot
 import Three_Axis_Robot_Arm as bot
@@ -41,6 +42,7 @@ def sarsa(robot, num_episodes, alpha=0.1, gamma=1.0, epsilon=0.1, verbosity_leve
     # Assume robot is initialized
     episode_lengths = []
     for episode in range(num_episodes):
+        start_time = time.time()
         # Initialize the starting state S (choosing from the starting positions)
         robot.reset()
 
@@ -93,8 +95,9 @@ def sarsa(robot, num_episodes, alpha=0.1, gamma=1.0, epsilon=0.1, verbosity_leve
                 print(f"alpha = {alpha} gamma = {gamma} epsilon = {epsilon}")
                 #robot.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
+        end_time = time.time()
         episode_lengths.append(i)
-        print(f"Episode {episode} ended with length {i}")
+        print(f"Episode {episode} ended with length {i}. Time for eposiode: {end_time-start_time} s")
     return episode_lengths
 
 #arm = bot.Six_Axis_Robot_Arm()

@@ -2,8 +2,8 @@ import numpy as np
 from math import cos, sin, pi
 
 
-class Path:
-    def __init__(self, helix_start: (int, int, int) = (0, 0, 0), voxel_size: int = 1, max_distance: int = 1):
+class Path_Short:
+    def __init__(self, helix_start: (int, int, int) = (0, 0, 0), voxel_size: int = 1, max_distance: int = 1, helix_length: int = 10):
         # the helix expands in positive x, y and z direction
         # the y-expansion has negative values after half a turn ...
         self.helix_start = helix_start
@@ -13,11 +13,13 @@ class Path:
         self.max_distance = max_distance
         # defines the parameter space of the helix
         self.par_space = 1
+        # length of the line
+        self.helix_length = helix_length
 
         # defines resolution of helix generation
-        self.resolution = 1000
+        self.resolution = 100
 
-        self.helix_scale = "mm"
+        self.helix_scale = "cm"
 
         if self.helix_scale == "dmm":
             self.helix_factor = 100
@@ -27,13 +29,13 @@ class Path:
             self.helix_factor = 1
 
     def x(self, t: float):
-        return - 3 * self.helix_factor * cos((4 / self.par_space)*pi*t) + 3 * self.helix_factor + self.helix_start[0]
+        return self.helix_start[0]
 
     def y(self, t: float):
-        return 3 * self.helix_factor * sin((4 / self.par_space)*pi*t) + self.helix_start[1]
+        return self.helix_start[1] + (t * self.helix_length * self.helix_factor)
 
     def z(self, t: float):
-        return t * 2 * self.helix_factor / self.par_space + self.helix_start[2]
+        return self.helix_start[2]
 
     # returns the coordinates of the center of all the voxels that are on the trajectory or 
     # within the max_distance starting with the helix_start voxel returns a list of tuples (x, y, z)
@@ -42,7 +44,7 @@ class Path:
         elements = []
         winning_voxels = []
         rewards = []
-        current_reward = -1.0
+        current_reward = -1
         elements.append((self.helix_start, current_reward))
         # generate a reward system that gets lower the closer we get to the finish
         # starting reward
@@ -70,7 +72,8 @@ class Path:
                         else:
                             elements.append(((x + k, y + j, z + l), current_reward))
 
-            current_reward += 1 / self.resolution
+            #current_reward += 1 / self.resolution
+            current_reward = -1
             if ((((i/self.resolution) + 0.01) * 100) % 5) == 0:
                 print(f"\rProcess: {int((i/self.resolution)*100)}%\r", end='')
 
@@ -94,6 +97,12 @@ class Path:
                 rewards.append(reward)
 
         print(f"Process: 100%")
+
+
+        for coords, reward in zip(helix, rewards):
+            print(f"Reward for {coords}, {reward}")
+
+        #print(f"winning voxels: {winning_voxels}")
 
         return helix, winning_voxels, rewards
 

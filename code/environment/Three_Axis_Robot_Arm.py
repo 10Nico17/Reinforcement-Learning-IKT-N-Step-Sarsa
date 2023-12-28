@@ -9,6 +9,7 @@ from maddux.robots.arm import Arm
 from maddux.environment import Environment
 import time
 from path import Path
+from path_short import Path_Short
 import itertools
 
 # suppress scientific notation
@@ -18,7 +19,7 @@ np.set_printoptions(suppress=True)
 class Three_Axis_Robot_Arm:
     """Class simulating the robot arm."""
 
-    def __init__(self, starting_pos: (float, float, float) = (-5000, 0, 0)) -> None:
+    def __init__(self, starting_pos: (float, float, float) = (-500, 0, 0)) -> None:
         """Initialize robot arm.
 
         :param initial_angles: Tuple with the initial angles of the robot joints in degrees
@@ -30,7 +31,8 @@ class Three_Axis_Robot_Arm:
         :return: None
         """
         # Create path for the robot
-        path = Path(helix_start=starting_pos, max_distance=2)
+        #path = Path(helix_start=starting_pos, max_distance=2)
+        path = Path_Short(helix_start=starting_pos, max_distance=2)
         self.voxels, self.winning_voxels, self.rewards = path.get_helix_voxels()
         self.voxel_size = 1
         self.path = path.get_helix_data()
@@ -41,9 +43,9 @@ class Three_Axis_Robot_Arm:
 
         # Create a series of links (each link has one joint)
         # (theta, offset, length, twist, q_lim=None)
-        L1 = Link(0, 1518.5, 0, 1.570796327, link_size=50)
-        L2 = Link(0, 0, -3000.0, 0, link_size=40)
-        L3 = Link(0, 0, -3000.0, 0, link_size=5)
+        L1 = Link(0, 151.85, 0, 1.570796327, link_size=50)
+        L2 = Link(0, 0, -300.00, 0, link_size=40)
+        L3 = Link(0, 0, -300.00, 0, link_size=0.5)
         links = np.array([L1, L2, L3])
 
         # Caculate starting angles from starting position and
@@ -64,13 +66,13 @@ class Three_Axis_Robot_Arm:
         # Create arm
         self.rob = Arm(links, self.starting_angles, '1-link')
 
-        self.env = Environment(dimensions=[15000.0, 15000.0, 15000.0],
+        self.env = Environment(dimensions=[1500.0, 1500.0, 1500.0],
                                robot=self.rob)
 
         # Create all possible actions
         # Define possible actions for each joint in deg
         # For now 1 degree per action, as the robot will take forever otherwise
-        joint_actions_deg = [-0.01, 0, 0.01]
+        joint_actions_deg = [-0.05, 0, 0.05]
         joint_actions_rad = np.array([self.__deg_to_rad(action) for action in joint_actions_deg])
 
         # Generate all possible action combinations for the 3 joints
@@ -87,6 +89,12 @@ class Three_Axis_Robot_Arm:
         # Set ending positions to zero in Q
         for winning_voxel in self.winning_voxels:
             self.Q[self.voxels_index_dict[winning_voxel]] = np.zeros(total_amount_actions)
+
+        # Set ending positions to zero in Q
+        for winning_voxel in self.winning_voxels:
+            self.Q[self.voxels_index_dict[winning_voxel]] = np.zeros(total_amount_actions)
+
+        print(self.rewards)
 
         # Create variable for voxel of current TCP position, so it only needs to be calculated
         # when the TCP is changed
@@ -408,14 +416,14 @@ class Three_Axis_Robot_Arm:
                 z.append(voxel[2])
             ax.scatter(x, y, z, marker=".", s=2, cmap=plt.get_cmap('hot'), c=self.rewards)
 
-            x = []
-            y = []
-            z = []
-            for voxel in self.winning_voxels:
-                x.append(voxel[0])
-                y.append(voxel[1])
-                z.append(voxel[2])
-            ax.scatter(x, y, z, marker=".", s=2.5, color='red')
+            #x = []
+            #y = []
+            #z = []
+            #for voxel in self.winning_voxels:
+            #    x.append(voxel[0])
+            #    y.append(voxel[1])
+            #    z.append(voxel[2])
+            #ax.scatter(x, y, z, marker=".", s=2.5, color='red')
 
         plt.show()
 
@@ -487,14 +495,18 @@ class Three_Axis_Robot_Arm:
                                      fps=fps, save_path=save_path)
 
 
-#rob = Three_Axis_Robot_Arm()
-#
-#step_size = 10
-#
-##for i in range(0, len(rob.path[0]), step_size):
-##    print(f"Iteration: {i/step_size} of {len(rob.path[0])/step_size}")
-##    angles = rob.rob.ikine((rob.path[0][i], rob.path[1][i], rob.path[2][i]), set_robot=False)
-##    rob.set_joint_angles_rad(angles, save=True)
-#
+rob = Three_Axis_Robot_Arm()
+
+step_size = 10
+
+#for i in range(0, len(rob.path[0]), step_size):
+#    print(f"Iteration: {i/step_size} of {len(rob.path[0])/step_size}")
+#    angles = rob.rob.ikine((rob.path[0][i], rob.path[1][i], rob.path[2][i]), set_robot=False)
+#    rob.set_joint_angles_rad(angles, save=True)
+
 #rob.show(draw_path=True, draw_voxels=True, zoom_path=True)
-#rob.animate(zoom_path=True, draw_voxels=True, draw_path=True, fps=20)
+
+#print(rob.do_move(0))
+
+#rob.show(draw_path=True, draw_voxels=True, zoom_path=True)
+#rob.animate(zoom_path=False, draw_voxels=True, draw_path=True, fps=20)
