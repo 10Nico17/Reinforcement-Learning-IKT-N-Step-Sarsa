@@ -3,7 +3,7 @@ from math import cos, sin, pi
 
 
 class Path:
-    def __init__(self, helix_start: (int, int, int) = (0, 0, 0), voxel_size: int = 1, max_distance: int = 1):
+    def __init__(self, helix_start: (int, int, int) = (0, 0, 0), voxel_size: int = 1, max_distance: int = 1, generate_percentage_of_helix=1):
         # the helix expands in positive x, y and z direction
         # the y-expansion has negative values after half a turn ...
         self.helix_start = helix_start
@@ -13,6 +13,8 @@ class Path:
         self.max_distance = max_distance
         # defines the parameter space of the helix
         self.par_space = 1
+        # defines the percentage of the helix the voxels get generated on
+        self.percentage_of_helix = generate_percentage_of_helix
 
         # defines resolution of helix generation
         self.resolution = 1000
@@ -35,21 +37,21 @@ class Path:
     def z(self, t: float):
         return t * 2 * self.helix_factor / self.par_space + self.helix_start[2]
 
-    # returns the coordinates of the center of all the voxels that are on the trajectory or 
+    # returns the coordinates of the center of all the voxels that are on the trajectory or
     # within the max_distance starting with the helix_start voxel returns a list of tuples (x, y, z)
     def get_helix_voxels(self):
         print(f"Calculating Helix Voxels")
         elements = []
         winning_voxels = []
         rewards = []
-        current_reward = -1.0
+        current_reward = -1
         elements.append((self.helix_start, current_reward))
         # generate a reward system that gets lower the closer we get to the finish
         # starting reward
         reward_win = 0.0
 
         for i in range(self.resolution):
-            t = self.par_space / self.resolution * i
+            t = self.par_space / self.resolution * i / (1/self.percentage_of_helix)
             # calculate the helix voxels
             x = self.x(t)
             y = self.y(t)
@@ -63,16 +65,21 @@ class Path:
             for k in range(-self.max_distance, self.max_distance + 1):
                 for j in range(-self.max_distance, self.max_distance + 1):
                     for l in range(-self.max_distance, self.max_distance + 1):
-                        #if (x + k, y + j, z + l) not in helix:
                         if (i >= self.resolution-((self.max_distance+4))):
-                            winning_voxels.append((x + k, y + j, z + l))
-                            elements.append(((x + k, y + j, z + l), 0))
+                            # Winning voxel
+                            element = (x + k, y + j, z + l)
+                            winning_voxels.append(element)
+                            # Add Voxel with reward 0
+                            elements.append((element, 0))
                         else:
+                            # Non winning voxel
+                            # Add Voxel with reward -1
                             elements.append(((x + k, y + j, z + l), current_reward))
 
             current_reward += 1 / self.resolution
+            #current_reward = -1
             if ((((i/self.resolution) + 0.01) * 100) % 5) == 0:
-                print(f"\rProcess: {int((i/self.resolution)*100)}%\r", end='')
+                print(f"Process: {int((i/self.resolution)*100)}%\r", end='')
 
         print(f"Process: 100%")
 
@@ -91,9 +98,19 @@ class Path:
             if coords not in seen:
                 seen.add(coords)
                 helix.append(coords)
-                rewards.append(reward)
+                if coords in winning_voxels:
+                    rewards.append(0)
+                else:
+                    rewards.append(reward)
 
         print(f"Process: 100%")
+
+        #for coords, reward in zip(helix, rewards):
+        #    print(f"Reward for {coords}, {reward}")
+        #    if(coords in winning_voxels):
+        #        print(f"In winning voxels!")
+
+        #print(f"winning voxels: {winning_voxels}")
 
         return helix, winning_voxels, rewards
 

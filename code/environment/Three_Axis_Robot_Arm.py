@@ -32,7 +32,7 @@ class Three_Axis_Robot_Arm:
         """
         # Create path for the robot
         #path = Path(helix_start=starting_pos, max_distance=2)
-        path = Path_Short(helix_start=starting_pos, max_distance=2)
+        path = Path(helix_start=starting_pos, max_distance=1, generate_percentage_of_helix=1/16)
         self.voxels, self.winning_voxels, self.rewards = path.get_helix_voxels()
         self.voxel_size = 1
         self.path = path.get_helix_data()
@@ -423,14 +423,14 @@ class Three_Axis_Robot_Arm:
                 z.append(voxel[2])
             ax.scatter(x, y, z, marker=".", s=2, cmap=plt.get_cmap('hot'), c=self.rewards)
 
-            #x = []
-            #y = []
-            #z = []
-            #for voxel in self.winning_voxels:
-            #    x.append(voxel[0])
-            #    y.append(voxel[1])
-            #    z.append(voxel[2])
-            #ax.scatter(x, y, z, marker=".", s=2.5, color='red')
+            x = []
+            y = []
+            z = []
+            for voxel in self.winning_voxels:
+                x.append(voxel[0])
+                y.append(voxel[1])
+                z.append(voxel[2])
+            ax.scatter(x, y, z, marker=".", s=2.5, color='red')
 
         plt.show()
 
