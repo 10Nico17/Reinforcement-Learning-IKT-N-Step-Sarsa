@@ -65,17 +65,21 @@ class Path_Short:
             for k in range(-self.max_distance, self.max_distance + 1):
                 for j in range(-self.max_distance, self.max_distance + 1):
                     for l in range(-self.max_distance, self.max_distance + 1):
-                        #if (x + k, y + j, z + l) not in helix:
                         if (i >= self.resolution-((self.max_distance+4))):
-                            winning_voxels.append((x + k, y + j, z + l))
-                            elements.append(((x + k, y + j, z + l), 0))
+                            # Winning voxel
+                            element = (x + k, y + j, z + l)
+                            winning_voxels.append(element)
+                            # Add Voxel with reward 0
+                            elements.append((element, 0))
                         else:
+                            # Non winning voxel
+                            # Add Voxel with reward -1
                             elements.append(((x + k, y + j, z + l), current_reward))
 
-            #current_reward += 1 / self.resolution
-            current_reward = -1
+            current_reward += 1 / self.resolution
+            #current_reward = -1
             if ((((i/self.resolution) + 0.01) * 100) % 5) == 0:
-                print(f"\rProcess: {int((i/self.resolution)*100)}%\r", end='')
+                print(f"Process: {int((i/self.resolution)*100)}%\r", end='')
 
         print(f"Process: 100%")
 
@@ -94,15 +98,19 @@ class Path_Short:
             if coords not in seen:
                 seen.add(coords)
                 helix.append(coords)
-                rewards.append(reward)
+                if coords in winning_voxels:
+                    rewards.append(0)
+                else:
+                    rewards.append(reward)
 
         print(f"Process: 100%")
 
-
         for coords, reward in zip(helix, rewards):
             print(f"Reward for {coords}, {reward}")
+            if(coords in winning_voxels):
+                print(f"In winning voxels!")
 
-        #print(f"winning voxels: {winning_voxels}")
+        print(f"winning voxels: {winning_voxels}")
 
         return helix, winning_voxels, rewards
 

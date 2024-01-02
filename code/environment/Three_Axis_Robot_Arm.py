@@ -40,6 +40,7 @@ class Three_Axis_Robot_Arm:
 
         # Create hashtable of voxels with a unique index for each voxel
         self.voxels_index_dict = {value: index for index, value in enumerate(self.voxels)}
+        #print(f"\nVoxels index dict: {self.voxels_index_dict}\n")
 
         # Create a series of links (each link has one joint)
         # (theta, offset, length, twist, q_lim=None)
@@ -72,7 +73,7 @@ class Three_Axis_Robot_Arm:
         # Create all possible actions
         # Define possible actions for each joint in deg
         # For now 1 degree per action, as the robot will take forever otherwise
-        joint_actions_deg = [-0.05, 0, 0.05]
+        joint_actions_deg = [-0.1, 0, 0.1]
         joint_actions_rad = np.array([self.__deg_to_rad(action) for action in joint_actions_deg])
 
         # Generate all possible action combinations for the 3 joints
@@ -81,7 +82,9 @@ class Three_Axis_Robot_Arm:
 
         # Create a dictionary to map each combination to a unique integer
         self.actions_dict = {i: action for i, action in enumerate(action_combinations)}
+        #print(f"\nActions dict: {self.actions_dict}\n")
         self.inv_actions_dict = {v: k for k, v in self.actions_dict.items()}
+        #print(f"\nInv Actions dict: {self.inv_actions_dict}\n")
 
         # Create Q
         self.Q = -np.random.rand(amount_voxels, total_amount_actions)
@@ -90,11 +93,7 @@ class Three_Axis_Robot_Arm:
         for winning_voxel in self.winning_voxels:
             self.Q[self.voxels_index_dict[winning_voxel]] = np.zeros(total_amount_actions)
 
-        # Set ending positions to zero in Q
-        for winning_voxel in self.winning_voxels:
-            self.Q[self.voxels_index_dict[winning_voxel]] = np.zeros(total_amount_actions)
-
-        print(self.rewards)
+        #print(self.Q)
 
         # Create variable for voxel of current TCP position, so it only needs to be calculated
         # when the TCP is changed
@@ -197,6 +196,9 @@ class Three_Axis_Robot_Arm:
         # Get index of voxel and return reward
         try:
             current_voxel_index = self.voxels_index_dict[self.current_voxel]
+            #print(f"\n    Getting reward. Current Voxel: {self.current_voxel}, index: {current_voxel_index}")
+            #print(f"    In winning_voxels?: {self.current_voxel in self.winning_voxels}")
+            #print(f"    Reward: {self.rewards[current_voxel_index]}\n")
             return self.rewards[current_voxel_index]
         except IndexError as e:
             print(f"Index Error in Six_Axis_Robot_Arm.get_reward(): {e}")
@@ -237,7 +239,7 @@ class Three_Axis_Robot_Arm:
         angles_rad = np.array([self.__deg_to_rad(angle) for angle in angles])
         self.set_joint_angles_rad(angles_rad)
 
-    def set_joint_angles_rad(self, angles: (float, float, float), save=False) -> None:
+    def set_joint_angles_rad(self, angles: (float, float, float), save=False, set_last_voxel=True) -> None:
         """Set joint angles.
 
         :param angles: Tuple with the angles for the robot joints in radiants
@@ -248,7 +250,8 @@ class Three_Axis_Robot_Arm:
         # Limit angles to +-180°
         angles_rad = self.__limit_angles(angles)
         self.rob.update_angles(angles_rad, save=save)
-        self.last_voxel = self.current_voxel
+        if set_last_voxel is True:
+            self.last_voxel = self.current_voxel
         self.current_voxel = self.__get_tcp_voxel_position()
 
     def reset(self) -> None:
@@ -367,12 +370,16 @@ class Three_Axis_Robot_Arm:
         if self.__check_in_voxels() is False:
             # Go back to starting position
             self.out_of_bounds_counter += 1
-            self.set_joint_angles_rad(self.starting_angles)
-            self.last_voxel = self.current_voxel
+            self.set_joint_angles_rad(self.starting_angles, set_last_voxel=False)
+            #self.last_voxel = self.current_voxel
+            # High punishment for going out of bounds!
+            reward = -5
+            #print("\nOut of bounds!\n")
+        else:
+            reward = self.__get_reward()
         # Check for win
         if self.__check_win() is True:
             win = True
-        reward = self.__get_reward()
 
         # Forward kinematics for TCP coordinate calculation
         tcp_matrix = self.rob.fkine()
@@ -495,9 +502,9 @@ class Three_Axis_Robot_Arm:
                                      fps=fps, save_path=save_path)
 
 
-rob = Three_Axis_Robot_Arm()
+#rob = Three_Axis_Robot_Arm()
 
-step_size = 10
+#step_size = 10
 
 #for i in range(0, len(rob.path[0]), step_size):
 #    print(f"Iteration: {i/step_size} of {len(rob.path[0])/step_size}")
