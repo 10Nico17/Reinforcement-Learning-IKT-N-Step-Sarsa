@@ -19,7 +19,7 @@ np.set_printoptions(suppress=True)
 class Three_Axis_Robot_Arm:
     """Class simulating the robot arm."""
 
-    def __init__(self, starting_pos: (float, float, float) = (-500, 0, 0)) -> None:
+    def __init__(self, starting_pos: (float, float, float) = (-500, 0, 0), section_length=1, helix_section=0) -> None:
         """Initialize robot arm.
 
         :param initial_angles: Tuple with the initial angles of the robot joints in degrees
@@ -32,7 +32,9 @@ class Three_Axis_Robot_Arm:
         """
         # Create path for the robot
         #path = Path(helix_start=starting_pos, max_distance=2)
-        path = Path(helix_start=starting_pos, max_distance=1, generate_percentage_of_helix=1/16)
+        helix_section = helix_section * section_length
+        path = Path(helix_start=starting_pos, max_distance=1,
+                    generate_percentage_of_helix=section_length, generate_start=helix_section)
         self.voxels, self.winning_voxels, self.rewards = path.get_helix_voxels()
         self.voxel_size = 1
         self.path = path.get_helix_data()
@@ -46,7 +48,7 @@ class Three_Axis_Robot_Arm:
         # (theta, offset, length, twist, q_lim=None)
         L1 = Link(0, 151.85, 0, 1.570796327, link_size=50)
         L2 = Link(0, 0, -300.00, 0, link_size=40)
-        L3 = Link(0, 0, -300.00, 0, link_size=0.5)
+        L3 = Link(0, 0, -300.00, 0, link_size=0.2)
         links = np.array([L1, L2, L3])
 
         # Caculate starting angles from starting position and
@@ -59,11 +61,11 @@ class Three_Axis_Robot_Arm:
         self.rob = Arm(links, q0, '1-link')
 
         # Do inverse kinematics for the starting position and
-        # create a new arm with the starting position
-        self.starting_angles = self.rob.ikine((self.path[0][0], self.path[1][0], self.path[2][0]))
+        # create a new arm with the starting position of the voxels
+        start_in_path = int(len(self.path[0]) * helix_section)
+        self.starting_angles = self.rob.ikine((self.path[0][start_in_path], self.path[1][start_in_path], self.path[2][start_in_path]))
         # do mod 2pi to starting angles to not get crazy large angles
         self.starting_angles = np.array([angle % (2*np.pi) for angle in self.starting_angles])
-        #self.starting_angles = self.__limit_angles(self.rob.ikine((self.path[0][0], self.path[1][0], self.path[2][0])))
         # Create arm
         self.rob = Arm(links, self.starting_angles, '1-link')
 
@@ -241,7 +243,7 @@ class Three_Axis_Robot_Arm:
         """
         # Convert degrees of angles to radiants
         angles_rad = np.array([self.__deg_to_rad(angle) for angle in angles])
-        self.set_joint_angles_rad(angles_rad)
+        self.set_joint_angles_rad(angles_rad, save=save)
 
     def set_joint_angles_rad(self, angles: (float, float, float), save=False, set_last_voxel=True) -> None:
         """Set joint angles.
@@ -443,6 +445,51 @@ class Three_Axis_Robot_Arm:
         # TCP Coordinates as (x, y, z)
         tcp_coordinates = (tcp_matrix[0, 3], tcp_matrix[1, 3], tcp_matrix[2, 3])
         return tcp_coordinates
+
+    def animate_move_along_q_values(self, draw_path=False, draw_voxels=False, zoom_path=False, fps=20, max_steps=1000):
+        """Move the robot along the learned Q values and animate it.
+
+        Will stop when running out of bounds.
+        Needs to be called last.
+
+        :param draw_path: Draw the path the robot is supposed to learn
+        :type draw_path: bool
+
+        :param draw_voxels: Draw the voxels
+        :type draw_voxels: bool
+
+        :param zoom_path: Fit drawing to the path
+        :type zoom_path: bool
+
+        :param fps: Fps of the animation
+        :type fps: int
+
+        :param max_steps: Maximum numbers of steps to animate
+        :type max_steps: int
+        """
+        # Reset robot to starting position
+        self.reset()
+
+        # Do moves along largest Q values and save them
+        done = False
+        i = 0
+        while not done:
+            # Get the current Qs and search for the highest Q
+            action = np.argmax(self.get_current_qs())
+            # Move the direction with the highest Q
+            new_angles = self.rob.get_current_joint_config() + self.actions_dict[action]
+            # Move robot into new position
+            self.set_joint_angles_rad(new_angles, save=True)
+            # Check for boundaries, check for win, check if max steps are reached max steps
+            in_voxels = self.__check_in_voxels() is True
+            in_win = self.__check_win() is True
+            if (not in_voxels) or (in_win) or (i > max_steps):
+                if not in_voxels: print("Animation out of bounds!")
+                done = True
+            i += 1
+
+        # Animate
+        self.animate(draw_path=draw_path, draw_voxels=draw_voxels, zoom_path=zoom_path, fps=20)
 
     def show(self, draw_path=False, draw_voxels=False, zoom_path=False) -> None:
         """Open window and draw robot arm.

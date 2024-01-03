@@ -3,7 +3,7 @@ from math import cos, sin, pi
 
 
 class Path:
-    def __init__(self, helix_start: (int, int, int) = (0, 0, 0), voxel_size: int = 1, max_distance: int = 1, generate_percentage_of_helix=1):
+    def __init__(self, helix_start: (int, int, int) = (0, 0, 0), voxel_size: int = 1, max_distance: int = 1, generate_percentage_of_helix=1, generate_start=0):
         # the helix expands in positive x, y and z direction
         # the y-expansion has negative values after half a turn ...
         self.helix_start = helix_start
@@ -15,6 +15,8 @@ class Path:
         self.par_space = 1
         # defines the percentage of the helix the voxels get generated on
         self.percentage_of_helix = generate_percentage_of_helix
+        # defines the start of the helix the voxels get generated on
+        self.start_of_voxels = generate_start
 
         # defines resolution of helix generation
         self.resolution = 1000
@@ -51,7 +53,7 @@ class Path:
         reward_win = 0.0
 
         for i in range(self.resolution):
-            t = self.par_space / self.resolution * i / (1/self.percentage_of_helix)
+            t = self.par_space / self.resolution * (i / (1/self.percentage_of_helix)) + self.start_of_voxels
             # calculate the helix voxels
             x = self.x(t)
             y = self.y(t)
@@ -96,12 +98,15 @@ class Path:
             coords, reward = element
             print(f"\rProcess: {int((i/len(elements))*100)}%\r", end='')
             if coords not in seen:
-                seen.add(coords)
-                helix.append(coords)
-                if coords in winning_voxels:
-                    rewards.append(0)
-                else:
-                    rewards.append(reward)
+                # Dont add if we did not generate voxels at start of helix and the voxel is at the start of the helix
+                # This mitigates a bug, where it will always generate a voxel at the start of the helix
+                if self.start_of_voxels is not 0 and coords is not self.helix_start:
+                    seen.add(coords)
+                    helix.append(coords)
+                    if coords in winning_voxels:
+                        rewards.append(0)
+                    else:
+                        rewards.append(reward)
 
         print(f"Process: 100%")
 
