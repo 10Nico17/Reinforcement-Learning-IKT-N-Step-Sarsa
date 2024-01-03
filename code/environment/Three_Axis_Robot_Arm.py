@@ -11,6 +11,7 @@ import time
 from path import Path
 from path_short import Path_Short
 import itertools
+import ujson
 
 # suppress scientific notation
 np.set_printoptions(suppress=True)
@@ -34,6 +35,7 @@ class Three_Axis_Robot_Arm:
         """
         # Create path for the robot
         #path = Path(helix_start=starting_pos, max_distance=2)
+        self.helix_section = helix_section
         helix_section = helix_section * section_length
         path = Path(helix_start=starting_pos, max_distance=1,
                     generate_percentage_of_helix=section_length, generate_start=helix_section)
@@ -606,6 +608,42 @@ class Three_Axis_Robot_Arm:
                                      path=self.path, voxels=self.voxels,
                                      winning_voxels=self.winning_voxels,
                                      fps=fps, save_path=save_path)
+
+    def save_learned_to_file(self):
+        print("Saving Qs and Voxels to file")
+        # Write Qs to file
+        np.save(f"Q_values_section_{self.helix_section}.npy", self.Q)
+        print(f"Saves Qs: {self.Q}")
+        # Write Winning Voxels to file
+        np.save(f"Winning_voxels_{self.helix_section}.npy", self.winning_voxels)
+        print(f"Saves winning_voxels: {self.winning_voxels}")
+        # Write index dict to file
+        with open(f"Index_dict_{self.helix_section}.json", 'w') as json_file:
+            json_file.write(ujson.dumps(self.voxels_index_dict))
+        print(f"Saves voxels_index_dict: {self.voxels_index_dict}")
+
+
+    def load_learned_from_file(self):
+        print("Loading Qs and Voxels from file")
+        # Write Qs to file
+        self.Q = np.load(f"Q_values_section_{self.helix_section}.npy")
+        print(f"Loaded Qs: {self.Q}")
+        # Load Winning Voxels to file
+        self.winning_voxels = []
+        loaded_winning_voxels = np.load(f"Winning_voxels_{self.helix_section}.npy")
+        # Convert arras to tuples
+        for i, winning_voxel_arr in enumerate(loaded_winning_voxels):
+            #print(winning_voxel_arr)
+            self.winning_voxels.append(tuple(winning_voxel_arr))
+            #print(tuple(winning_voxel_arr))
+        print(f"Loaded winning_voxels: {self.winning_voxels}")
+        # Write index dict to file
+        with open(f"Index_dict_{self.helix_section}.json", 'r') as json_file:
+            loaded_dict = ujson.load(json_file)
+        # Convert strings to tuples
+        self.voxels_index_dict = {eval(key): value for key, value in loaded_dict.items()}
+        print(f"Loaded voxels_index_dict: {self.voxels_index_dict}")
+
 
 
 #rob = Three_Axis_Robot_Arm()

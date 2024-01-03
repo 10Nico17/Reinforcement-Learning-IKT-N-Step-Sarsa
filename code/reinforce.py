@@ -125,7 +125,7 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
         if episode % 25000 == 0:
             # Multipliziere den aktuellen Wert von alpha mit 0.1
             alpha *= 0.1
-            
+
         start_time = time.time()
         # Initialize the starting state S (choosing from the starting positions)
         robot.reset()
@@ -224,7 +224,7 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
 
         end_time = time.time()
         episode_lengths.append(i)
-        print(f"Episode {episode} ended with length {i}. Time for eposiode: {end_time-start_time} s")  
+        print(f"Episode {episode} ended with length {i}. Time for eposiode: {end_time-start_time} s")
         algo = 'sarsa_n_step'
 
     return episode_lengths, algo
@@ -232,10 +232,15 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
 
 
 #arm = bot.Six_Axis_Robot_Arm()
-arm = bot.Three_Axis_Robot_Arm(section_length=1/16, helix_section=0)
-arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
+helix_section = 0
 
-num_episodes = 100000
+# Todo: Match starting angles to ending angles
+arm = bot.Three_Axis_Robot_Arm(section_length=1/32, helix_section=helix_section)
+#arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
+
+arm.load_learned_from_file()
+
+num_episodes = 10000
 alpha = 0.1
 gamma = 0.99
 epsilon = 0.1
@@ -244,6 +249,8 @@ epsilon = 0.1
 
 episode_lengths, algo = n_step_sarsa(arm, num_episodes, alpha, gamma, epsilon, verbosity_level=1)
 
+# Write learned values to file
+arm.save_learned_to_file()
 
 fig, ax = plt.subplots(figsize=(10, 10))
 ax.set_yscale('log')
