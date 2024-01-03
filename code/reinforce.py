@@ -103,8 +103,8 @@ def sarsa(robot, num_episodes, alpha=0.1, gamma=1.0, epsilon=0.1, verbosity_leve
     return episode_lengths
 
 #arm = bot.Six_Axis_Robot_Arm()
-arm = bot.Three_Axis_Robot_Arm()
-arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
+arm = bot.Three_Axis_Robot_Arm(section_length=1/16, helix_section=15)
+#arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
 num_episodes = 10000
 alpha = 1/25
@@ -119,3 +119,5 @@ ax.plot(episode_lengths)
 print(f"average length of the last 100 episodes: {np.average(episode_lengths[-100:len(episode_lengths)])}")
 print(f"last 10 episode lengths: {episode_lengths[-10:len(episode_lengths)]}")
 plt.show()
+
+arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
