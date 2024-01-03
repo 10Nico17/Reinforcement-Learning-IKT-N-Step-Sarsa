@@ -101,6 +101,10 @@ class Three_Axis_Robot_Arm:
         # Save last voxel to be able to set last Q
         self.last_voxel = None
 
+        # Save last voxel to be able to set last Q
+        self.n = 5
+        self.last_n_voxel = []
+
         # Init out of bounds counter
         self.out_of_bounds_counter = 0
 
@@ -250,8 +254,13 @@ class Three_Axis_Robot_Arm:
         # Limit angles to +-180°
         angles_rad = self.__limit_angles(angles)
         self.rob.update_angles(angles_rad, save=save)
+        
         if set_last_voxel is True:
-            self.last_voxel = self.current_voxel
+            self.last_voxel = self.current_voxel      
+            self.last_n_voxel.append(self.current_voxel) 
+            if len(self.last_n_voxel)>self.n:
+                del(self.last_n_voxel[0])
+        
         self.current_voxel = self.__get_tcp_voxel_position()
 
     def reset(self) -> None:
@@ -293,6 +302,31 @@ class Three_Axis_Robot_Arm:
         """
         # Return the value of Q at the index of the current voxel in the index dict
         return self.Q[self.voxels_index_dict[self.current_voxel]][action]
+    
+    def get_last_q(self, action: int) -> float:
+        """Get the q value for the current state and a specific action.
+
+        :param action: Action index for the action dict
+        :type action: int
+
+        :return: Q value
+        :rtype: float
+        """
+        # Return the value of Q at the index of the current voxel in the index dict
+        return self.Q[self.voxels_index_dict[self.last_voxel]][action]
+    
+    def get_last_n_q(self, action: int) -> float:
+        """Get the q value for the current state and a specific action.
+
+        :param action: Action index for the action dict
+        :type action: int
+
+        :return: Q value
+        :rtype: float
+        """
+        # Return the value of Q at the index of the current voxel in the index dict
+        return self.Q[self.voxels_index_dict[self.last_n_voxel[0]]][action]   
+
 
     def set_current_q(self, action: int, q: float) -> None:
         """Set a q value for the current state.
@@ -321,6 +355,22 @@ class Three_Axis_Robot_Arm:
         """
         # Set the value of Q at the index of the current voxel in the index dict
         self.Q[self.voxels_index_dict[self.last_voxel]][action] = q
+
+
+    def set_last_n_q(self, action: int, q: float) -> None:
+        """Set a q value for the state before the current state.
+
+        :param action: Action index for the action dict
+        :type action: int
+
+        :param new_q: new Q value to set
+        :type new_q: float
+
+        :return: None
+        """
+        # Set the value of Q at the index of the current voxel in the index dict
+        self.Q[self.voxels_index_dict[self.last_n_voxel[0]]][action] = q
+
 
     def get_action_dict(self) -> dict:
         """Get the dict containing all actions (action_number : action).
@@ -386,6 +436,13 @@ class Three_Axis_Robot_Arm:
         # TCP Coordinates as (x, y, z)
         tcp_coordinates = (tcp_matrix[0, 3], tcp_matrix[1, 3], tcp_matrix[2, 3])
         return tcp_coordinates, reward, win
+    
+    def get_tcp(self) -> ((int, int, int), int, bool):
+        # Forward kinematics for TCP coordinate calculation
+        tcp_matrix = self.rob.fkine()
+        # TCP Coordinates as (x, y, z)
+        tcp_coordinates = (tcp_matrix[0, 3], tcp_matrix[1, 3], tcp_matrix[2, 3])
+        return tcp_coordinates
 
     def show(self, draw_path=False, draw_voxels=False, zoom_path=False) -> None:
         """Open window and draw robot arm.
