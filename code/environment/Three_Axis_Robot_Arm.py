@@ -308,7 +308,7 @@ class Three_Axis_Robot_Arm:
         """
         # Return the value of Q at the index of the current voxel in the index dict
         return self.Q[self.voxels_index_dict[self.current_voxel]][action]
-    
+
     def get_last_q(self, action: int) -> float:
         """Get the q value for the current state and a specific action.
 
@@ -320,7 +320,7 @@ class Three_Axis_Robot_Arm:
         """
         # Return the value of Q at the index of the current voxel in the index dict
         return self.Q[self.voxels_index_dict[self.last_voxel]][action]
-    
+
     def get_last_n_q(self, action: int) -> float:
         """Get the q value for the current state and a specific action.
 
@@ -331,7 +331,7 @@ class Three_Axis_Robot_Arm:
         :rtype: float
         """
         # Return the value of Q at the index of the current voxel in the index dict
-        return self.Q[self.voxels_index_dict[self.last_n_voxel[0]]][action]   
+        return self.Q[self.voxels_index_dict[self.last_n_voxel[0]]][action]
 
 
     def set_current_q(self, action: int, q: float) -> None:
@@ -442,7 +442,7 @@ class Three_Axis_Robot_Arm:
         # TCP Coordinates as (x, y, z)
         tcp_coordinates = (tcp_matrix[0, 3], tcp_matrix[1, 3], tcp_matrix[2, 3])
         return tcp_coordinates, reward, win
-    
+
     def get_tcp(self) -> ((int, int, int), int, bool):
         # Forward kinematics for TCP coordinate calculation
         tcp_matrix = self.rob.fkine()
