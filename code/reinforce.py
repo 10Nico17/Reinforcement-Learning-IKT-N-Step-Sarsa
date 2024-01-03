@@ -120,6 +120,12 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
     n=5
     episode_lengths = []    
     for episode in range(num_episodes):
+
+        # Überprüfe, ob die aktuelle Episode ein Vielfaches von 25.000 ist
+        if episode % 25000 == 0:
+            # Multipliziere den aktuellen Wert von alpha mit 0.1
+            alpha *= 0.1
+            
         start_time = time.time()
         # Initialize the starting state S (choosing from the starting positions)
         robot.reset()
@@ -239,8 +245,8 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
 arm = bot.Three_Axis_Robot_Arm()
 arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
-num_episodes = 10000
-alpha = 1/25
+num_episodes = 100000
+alpha = 0.1
 gamma = 0.99
 epsilon = 0.1
 
