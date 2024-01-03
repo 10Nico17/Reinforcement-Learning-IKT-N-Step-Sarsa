@@ -1,5 +1,5 @@
 import numpy as np
-from math import cos, sin, pi
+from math import cos, sin, pi, sqrt
 
 
 class Path:
@@ -19,7 +19,7 @@ class Path:
         self.start_of_voxels = generate_start
 
         # defines resolution of helix generation
-        self.resolution = 1000
+        self.resolution = 300
 
         self.helix_scale = "mm"
 
@@ -29,6 +29,8 @@ class Path:
             self.helix_factor = 10
         elif self.helix_scale == "cm":
             self.helix_factor = 1
+        else:
+            self.helix_factor = 15
 
     def x(self, t: float):
         return - 3 * self.helix_factor * cos((4 / self.par_space)*pi*t) + 3 * self.helix_factor + self.helix_start[0]
@@ -38,6 +40,16 @@ class Path:
 
     def z(self, t: float):
         return t * 2 * self.helix_factor / self.par_space + self.helix_start[2]
+
+    def __calculate_nearest_distance(self, voxel, path):
+        min_distance = float('inf')
+        voxel_x, voxel_y, voxel_z = voxel
+
+        for x, y, z in zip(path[0], path[1], path[2]):
+            distance = sqrt((x - voxel_x)**2 + (y - voxel_y)**2 + (z - voxel_z)**2)
+            min_distance = min(min_distance, distance)
+
+        return min_distance
 
     # returns the coordinates of the center of all the voxels that are on the trajectory or
     # within the max_distance starting with the helix_start voxel returns a list of tuples (x, y, z)
@@ -63,6 +75,8 @@ class Path:
             y = int(round(y / self.voxel_size))
             z = int(round(z / self.voxel_size))
 
+            path = self.get_helix_data()
+
             # add adjacent voxels to the elements list
             for k in range(-self.max_distance, self.max_distance + 1):
                 for j in range(-self.max_distance, self.max_distance + 1):
@@ -75,8 +89,12 @@ class Path:
                             elements.append((element, 0))
                         else:
                             # Non winning voxel
-                            # Add Voxel with reward -1
-                            elements.append(((x + k, y + j, z + l), current_reward))
+                            voxel = (x + k, y + j, z + l)
+                            # Calculate reward based on distance along helix and closeness to helix
+                            distance = round(self.__calculate_nearest_distance(voxel, path)) / 3
+                            #input(f"{voxel} distance: {distance}")
+                            # Add Voxel with reward
+                            elements.append(((x + k, y + j, z + l), current_reward-distance))
 
             current_reward += 1 / self.resolution
             #current_reward = -1

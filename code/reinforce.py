@@ -38,7 +38,7 @@ def get_action_epsilon_greedy(robot, epsilon: float = 0.1, verbosity_level=0) ->
         action_tuple = (robot.get_action_from_dict(action), action)
         if verbosity_level >= 2: print(f"  Exploiting with action: {action_tuple}")
         return action_tuple
-    
+
 
 
 def sarsa(robot, num_episodes, alpha=0.1, gamma=1.0, epsilon=0.1, verbosity_level=0):
@@ -64,7 +64,7 @@ def sarsa(robot, num_episodes, alpha=0.1, gamma=1.0, epsilon=0.1, verbosity_leve
         while not done:
             if verbosity_level >= 2: print(f"\nNew loop, iteration = {i}, current Voxel: {robot.current_voxel}")
             if verbosity_level >= 2: debug_pause(f" Qs for current Voxel:\n {robot.Q[robot.voxels_index_dict[robot.current_voxel]]}")
-            
+
             # Save Q
             last_q = robot.get_current_q(current_action_index)
 
@@ -72,7 +72,7 @@ def sarsa(robot, num_episodes, alpha=0.1, gamma=1.0, epsilon=0.1, verbosity_leve
 
             # Take action A, observe R, S'
             new_pos, reward, done = robot.do_move(current_action_index)
-            
+
             if verbosity_level >= 2: print(f"  New position: {new_pos}, reward: {reward}, new Voxel: {robot.current_voxel}. Doing SA")
             if verbosity_level >= 2: print(f"  Qs for new position:\n{robot.Q[robot.voxels_index_dict[robot.current_voxel]]}")
             if reward > best_reward:
@@ -115,10 +115,10 @@ def sarsa(robot, num_episodes, alpha=0.1, gamma=1.0, epsilon=0.1, verbosity_leve
 
 
 def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbosity_level=0):
-    
-    # Assume robot is initialized    
+
+    # Assume robot is initialized
     n=5
-    episode_lengths = []    
+    episode_lengths = []
     for episode in range(num_episodes):
         start_time = time.time()
         # Initialize the starting state S (choosing from the starting positions)
@@ -127,21 +127,19 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
         if verbosity_level >= 2: print(f"Robot initialized, starting SARSA, Starting angles: {robot.get_joint_angles_rad()}, Starting position: {robot.rob.end_effector_position()} Choosing action!")
         if verbosity_level >= 2: print(f"   Initial Qs for starting_voxel:\n{robot.Q[robot.voxels_index_dict[(-500, 0, 0)]]}")
 
-        
         current_state = robot.get_tcp()
-        
+
         # Choose the first action A from S using Q (epsilon-greedy)
         current_action, current_action_index = get_action_epsilon_greedy(robot, epsilon, verbosity_level=verbosity_level)
-        print('current_action: ', current_action)
-        print('current_action_index: ', current_action_index)
-
+        if verbosity_level >= 2: print('current_action: ', current_action)
+        if verbosity_level >= 2: print('current_action_index: ', current_action_index)
 
         # Loop for each step of the episode
         done = False
         i = 0
 
         states = []
-        actions = []        
+        actions = []
         actions_index = []
         rewards = []
 
@@ -149,21 +147,20 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
         actions.append(current_action)
         actions_index.append(current_action_index)
 
-
         G=0
         best_reward = -1
 
-        while not done:   
+        while not done:
             if verbosity_level >= 2: print(f"\nNew loop, iteration = {i}, current Voxel: {robot.current_voxel}")
             if verbosity_level >= 2: debug_pause(f" Qs for current Voxel:\n {robot.Q[robot.voxels_index_dict[robot.current_voxel]]}")
-            
+
             # Save Q
-            last_q = robot.get_current_q(actions_index[0]) 
+            last_q = robot.get_current_q(actions_index[0])
             if verbosity_level >= 2: print(f"  Q for current action {current_action} with index {current_action_index} at voxel {robot.current_voxel}: {last_q}. Doing SAR")
-            
-            
+
+
             # Take action A, observe R, S'
-            new_pos, reward, done = robot.do_move(current_action_index)  
+            new_pos, reward, done = robot.do_move(current_action_index)
 
 
             if verbosity_level >= 2: print(f"  New position: {new_pos}, reward: {reward}, new Voxel: {robot.current_voxel}. Doing SA")
@@ -173,33 +170,26 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
 
             # Choose A' from S' using Q (epsilon-greedy)
             new_action, new_action_index = get_action_epsilon_greedy(robot, epsilon, verbosity_level=verbosity_level)
-            
-            rewards.append(reward)           
-            states.append(new_pos) 
+
+            rewards.append(reward)
+            states.append(new_pos)
             actions.append(new_action)
             actions_index.append(new_action_index)
 
 
-            if(len(rewards)==n): 
+            if(len(rewards)==n):
                 # calculate n-step reward
                 for rew in range(len(rewards)-1):
                     G += (gamma**rew)*rewards[rew]
 
-                #last_q = robot.get_current_q(actions_index[0])
-                last_n_q = robot.get_last_n_q(actions_index[0])            
-
+                last_n_q = robot.get_last_n_q(actions_index[0])
 
                 new_q = robot.get_current_q(new_action_index)
-                #if verbosity_level >= 2: print(f"  Q for action {new_action} with index {new_action_index} at voxel {robot.current_voxel}: {new_q}. Updating Q values.")
+                if verbosity_level >= 2: print(f"  Q for action {new_action} with index {new_action_index} at voxel {robot.current_voxel}: {new_q}. Updating Q values.")
 
                 # Update the Q-value for the current state and action pair
-                #new_q = last_n_q + alpha * (G+gamma**n*new_q - last_n_q)
                 last_n_q = last_n_q + alpha * (G+gamma**n*new_q - last_n_q)
 
-                #last_q = last_q + alpha * (G+gamma**n*new_q - last_q)
-                
-                
-                #robot.set_last_q(actions_index[0], last_q)
                 robot.set_last_n_q(actions_index[0], last_n_q)
 
 
@@ -208,14 +198,14 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
                 del(rewards[0])
                 del(states[0])
                 del(actions[0])
-                del(actions_index[0])   
+                del(actions_index[0])
 
 
-            #if verbosity_level >= 2: print(f"  Updated Qs for last Voxel:\n{robot.Q[robot.voxels_index_dict[robot.last_voxel]]}")
+            if verbosity_level >= 2: print(f"  Updated Qs for last Voxel:\n{robot.Q[robot.voxels_index_dict[robot.last_voxel]]}")
             # S <- S' <- done in robot.do_move(); A <- A'
             current_action_index = new_action_index
             current_action = new_action
-            
+
             i += 1
             G=0
 
@@ -229,18 +219,18 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
         end_time = time.time()
         episode_lengths.append(i)
         print(f"Episode {episode} ended with length {i}. Time for eposiode: {end_time-start_time} s")  
-        algo = 'sarsa_n_steP'      
+        algo = 'sarsa_n_step'
 
     return episode_lengths, algo
 
 
 
 #arm = bot.Six_Axis_Robot_Arm()
-arm = bot.Three_Axis_Robot_Arm(section_length=1/16, helix_section=15)
-#arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
+arm = bot.Three_Axis_Robot_Arm(section_length=1/16, helix_section=0)
+arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
 num_episodes = 10000
-alpha = 1/25
+alpha = 1/75
 gamma = 0.99
 epsilon = 0.1
 

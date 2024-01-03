@@ -19,7 +19,9 @@ np.set_printoptions(suppress=True)
 class Three_Axis_Robot_Arm:
     """Class simulating the robot arm."""
 
-    def __init__(self, starting_pos: (float, float, float) = (-500, 0, 0), section_length=1, helix_section=0) -> None:
+    def __init__(self, starting_pos: (float, float, float) = (-500, 0, 0),
+                 section_length=1, helix_section=0,
+                 voxels=None, winning_voxels=None) -> None:
         """Initialize robot arm.
 
         :param initial_angles: Tuple with the initial angles of the robot joints in degrees
@@ -256,13 +258,13 @@ class Three_Axis_Robot_Arm:
         # Limit angles to +-180°
         angles_rad = self.__limit_angles(angles)
         self.rob.update_angles(angles_rad, save=save)
-        
+
         if set_last_voxel is True:
-            self.last_voxel = self.current_voxel      
-            self.last_n_voxel.append(self.current_voxel) 
+            self.last_voxel = self.current_voxel
+            self.last_n_voxel.append(self.current_voxel)
             if len(self.last_n_voxel)>self.n:
                 del(self.last_n_voxel[0])
-        
+
         self.current_voxel = self.__get_tcp_voxel_position()
 
     def reset(self) -> None:
