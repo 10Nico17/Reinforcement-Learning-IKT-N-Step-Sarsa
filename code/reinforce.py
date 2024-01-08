@@ -318,7 +318,9 @@ arm_1.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=Tr
 
 """
 
-sections_to_learn = 10
+starting_time = time.time()
+
+sections_to_learn = 128
 #start_at_section = 4
 section_length = 1/128
 voxel_volume = 1
@@ -407,5 +409,9 @@ while(True):
 
 # Save learned Q values
 arm.save_learned_to_file()
+
+total_time = time.time()-starting_time
+
+print(f"Learned {sections_to_learn} out of {int(1/section_length)} sections in a total time of {total_time} seconds")
 
 arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
