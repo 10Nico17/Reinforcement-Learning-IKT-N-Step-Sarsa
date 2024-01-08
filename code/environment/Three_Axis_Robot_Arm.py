@@ -2,7 +2,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-#import mplot3d as plt3d
+# import mplot3d as plt3d
 # maddux for robot visualization
 from maddux.robots.link import Link
 from maddux.robots.arm import Arm
@@ -22,7 +22,8 @@ class Three_Axis_Robot_Arm:
 
     def __init__(self, starting_pos: (float, float, float) = (-500, 0, 0),
                  section_length=1, helix_section=0,
-                 voxels=None, winning_voxels=None) -> None:
+                 voxels=None, winning_voxels=None,
+                 voxel_volume=1) -> None:
         """Initialize robot arm.
 
         :param initial_angles: Tuple with the initial angles of the robot joints in degrees
@@ -37,7 +38,9 @@ class Three_Axis_Robot_Arm:
         #path = Path(helix_start=starting_pos, max_distance=2)
         self.helix_section = helix_section
         helix_section = helix_section * section_length
-        path = Path(helix_start=starting_pos, max_distance=1,
+        # make the section a little longer so each section overlaps a litle
+        section_length *= 1.3
+        path = Path(helix_start=starting_pos, max_distance=voxel_volume,
                     generate_percentage_of_helix=section_length, generate_start=helix_section)
         self.voxels, self.winning_voxels, self.rewards = path.get_helix_voxels()
         self.voxel_size = 1
@@ -50,8 +53,8 @@ class Three_Axis_Robot_Arm:
 
         # Create a series of links (each link has one joint)
         # (theta, offset, length, twist, q_lim=None)
-        L1 = Link(0, 151.85, 0, 1.570796327, link_size=50)
-        L2 = Link(0, 0, -300.00, 0, link_size=40)
+        L1 = Link(0, 151.85, 0, 1.570796327, link_size=5)
+        L2 = Link(0, 0, -300.00, 0, link_size=4)
         L3 = Link(0, 0, -300.00, 0, link_size=0.2)
         links = np.array([L1, L2, L3])
 
@@ -161,12 +164,15 @@ class Three_Axis_Robot_Arm:
         :return: Limited angles in radiants
         :rtype: float
         """
-        # Substract starting angles to start in the middle
-        angles_relation_to_start = angles - self.starting_angles
-        # Limit angles
-        limited_angles = np.array([self.__limit_angle(angle) for angle in angles_relation_to_start])
-        # Add to starting angles
-        return limited_angles + self.starting_angles
+        ## Substract starting angles to start in the middle
+        #angles_relation_to_start = angles - self.starting_angles
+        ## Limit angles
+        #limited_angles = np.array([self.__limit_angle(angle) for angle in angles_relation_to_start])
+        ## Add to starting angles
+        #return limited_angles + self.starting_angles
+
+        # no limit for now.
+        return angles
 
     def __get_tcp_voxel_position(self) -> (int, int, int):
         """Get voxel the TCP is in.
@@ -195,6 +201,7 @@ class Three_Axis_Robot_Arm:
         :return: Bool indicating if the TCP is in a voxel
         :rtype: bool
         """
+        #print(f"Check in Voxels.\n  Current Voxel: {self.current_voxel}\n  Voxels index dict: {self.voxels_index_dict}")
         return self.current_voxel in self.voxels_index_dict
 
     def __get_reward(self) -> int:
@@ -274,9 +281,11 @@ class Three_Axis_Robot_Arm:
 
         :return: None
         """
+        #print(f"Reset:\n  Robot Q0: {self.rob.q0}")
         self.rob.reset(save=False)
         self.out_of_bounds_counter = 0
         self.current_voxel = self.__get_tcp_voxel_position()
+        #print(f"  self.current_voxel: {self.current_voxel}")
 
     def get_random_action(self) -> ((float, float, float), int):
         """Get a random action from all actions.
@@ -474,6 +483,13 @@ class Three_Axis_Robot_Arm:
         # Reset robot to starting position
         self.reset()
 
+        #print(f"Animate:")
+        #print(f"  robot Q0: {self.rob.q0}")
+        #print(f"  self.get_joint_angles_rad(): {self.get_joint_angles_rad()}")
+        #print(f"  self.rob.get_current_joint_config(): {self.rob.get_current_joint_config()}")
+        #print(f"  self.__get_tcp_voxel_position(): {self.__get_tcp_voxel_position()}")
+        #print(f"  self.current_voxel: {self.current_voxel}")
+
         # Do moves along largest Q values and save them
         done = False
         i = 0
@@ -484,11 +500,17 @@ class Three_Axis_Robot_Arm:
             new_angles = self.rob.get_current_joint_config() + self.actions_dict[action]
             # Move robot into new position
             self.set_joint_angles_rad(new_angles, save=True)
+            #print(f"  new angles: self.actions_dict[action]: {self.actions_dict[action]}")
+            #print(f"  new angles: self.get_joint_angles_rad(): {self.get_joint_angles_rad()}")
+            #print(f"  new angles: self.rob.get_current_joint_config(): {self.rob.get_current_joint_config()}")
+            #print(f"  self.__get_tcp_voxel_position(): {self.__get_tcp_voxel_position()}")
+            #print(f"  self.current_voxel: {self.current_voxel}")
             # Check for boundaries, check for win, check if max steps are reached max steps
-            in_voxels = self.__check_in_voxels() is True
-            in_win = self.__check_win() is True
+            in_voxels = self.__check_in_voxels()
+            in_win = self.__check_win()
             if (not in_voxels) or (in_win) or (i > max_steps):
                 if not in_voxels: print("Animation out of bounds!")
+                if i > max_steps: print("Possible infinite loop!")
                 done = True
             i += 1
 
@@ -613,36 +635,142 @@ class Three_Axis_Robot_Arm:
         print("Saving Qs and Voxels to file")
         # Write Qs to file
         np.save(f"Q_values_section_{self.helix_section}.npy", self.Q)
-        print(f"Saves Qs: {self.Q}")
+        #print(f"Saves Qs: {self.Q}")
         # Write Winning Voxels to file
         np.save(f"Winning_voxels_{self.helix_section}.npy", self.winning_voxels)
-        print(f"Saves winning_voxels: {self.winning_voxels}")
+        #print(f"Saves winning_voxels: {self.winning_voxels}")
         # Write index dict to file
         with open(f"Index_dict_{self.helix_section}.json", 'w') as json_file:
             json_file.write(ujson.dumps(self.voxels_index_dict))
-        print(f"Saves voxels_index_dict: {self.voxels_index_dict}")
+        #print(f"Saves voxels_index_dict: {self.voxels_index_dict}")
 
 
     def load_learned_from_file(self):
         print("Loading Qs and Voxels from file")
-        # Write Qs to file
+        # Load Qs from file
         self.Q = np.load(f"Q_values_section_{self.helix_section}.npy")
-        print(f"Loaded Qs: {self.Q}")
+        #print(f"Loaded Qs: {self.Q}")
         # Load Winning Voxels to file
         self.winning_voxels = []
         loaded_winning_voxels = np.load(f"Winning_voxels_{self.helix_section}.npy")
-        # Convert arras to tuples
+        # Convert arrays to tuples
         for i, winning_voxel_arr in enumerate(loaded_winning_voxels):
-            #print(winning_voxel_arr)
             self.winning_voxels.append(tuple(winning_voxel_arr))
-            #print(tuple(winning_voxel_arr))
-        print(f"Loaded winning_voxels: {self.winning_voxels}")
-        # Write index dict to file
+        #print(f"Loaded winning_voxels: {self.winning_voxels}")
+        # Load index dict to file
         with open(f"Index_dict_{self.helix_section}.json", 'r') as json_file:
             loaded_dict = ujson.load(json_file)
         # Convert strings to tuples
         self.voxels_index_dict = {eval(key): value for key, value in loaded_dict.items()}
-        print(f"Loaded voxels_index_dict: {self.voxels_index_dict}")
+        #print(f"Loaded voxels_index_dict: {self.voxels_index_dict}")
+
+
+    def stitch_from_file(self):
+        """Stitch the next segment of voxels and qs from file to the robots Qs and Voxels
+        """
+        print("Loading Qs and Voxels from file and stitching them to the robots Qs and voxels")
+        # Load Qs from file
+        additional_Qs = np.load(f"Q_values_section_{self.helix_section + 1}.npy")
+        #print(f"Loaded Qs: {self.Q}")
+        # Load Winning Voxels from file and overwrite the current winning voxels
+        self.winning_voxels = []
+        loaded_winning_voxels = np.load(f"Winning_voxels_{self.helix_section + 1}.npy")
+        # Convert arrays to tuples
+        for i, winning_voxel_arr in enumerate(loaded_winning_voxels):
+            self.winning_voxels.append(tuple(winning_voxel_arr))
+        #print(f"Loaded winning_voxels: {self.winning_voxels}")
+        # Load index dict to file
+        with open(f"Index_dict_{self.helix_section + 1}.json", 'r') as json_file:
+            loaded_dict = ujson.load(json_file)
+        # Convert strings to tuples
+        additional_voxels_index_dict = {eval(key): value for key, value in loaded_dict.items()}
+        self.helix_section += 1
+        # At this point there are the additional_voxels_index_dict and additional_Qs
+        # Now the voxels from the robot that are overlapping with the new voxels need to be removed
+        # Iterate through original index dict and check if the key is the same.
+        # Remove identical keys from the original index dict as well as the orininal Q values
+        temp_index_dict = dict(self.voxels_index_dict)
+        indicies_to_delete = []
+        for voxel in self.voxels_index_dict:
+            if voxel in additional_voxels_index_dict:
+                #print(f"Duble voxels! {(voxel, self.voxels_index_dict[voxel])}")
+                #print(f"Deleting from voxels index dict and Qs")
+                # Save all indicies to be deleted
+                indicies_to_delete.append(self.voxels_index_dict[voxel])
+                temp_index_dict.pop(voxel)
+
+        # Delete Indicies from voxels index dict
+        self.voxels_index_dict = dict(temp_index_dict)
+        # Delete indicies from Q
+        self.Q = np.delete(self.Q, indicies_to_delete, axis=0)
+
+        #print(f"Len self.voxels_index_dict before: {len(self.voxels_index_dict)}")
+        #print(f"Len self.Q before: {len(self.Q)}")
+
+        # Append new voxel indicies
+        self.voxels_index_dict.update(additional_voxels_index_dict)
+        # Appen new Qs
+        self.Q = np.append(self.Q, additional_Qs, axis=0)
+
+        #print(f"Len self.voxels_index_dict after: {len(self.voxels_index_dict)}")
+        #print(f"Len self.Q after: {len(self.Q)}")
+
+        # Update indicies, update self.voxels for animation, update rewards
+        counter = 0
+        self.voxels = []
+        self.rewards = []
+        reward_incr = 1/len(self.voxels_index_dict)
+        current_reward = -1
+        for voxel in self.voxels_index_dict:
+            self.voxels_index_dict[voxel] = counter
+            self.voxels.append(voxel)
+            if voxel in self.winning_voxels:
+                self.rewards.append(0)
+            else:
+                self.rewards.append(current_reward)
+                current_reward += reward_incr
+
+            counter += 1
+
+        # Overwrite reverse index dict
+
+    def get_finishing_angles_rad(self, max_steps=1000) -> (str, (float, float, float)):
+        # Reset robot to starting position
+        self.reset()
+
+        # Do moves along largest Q values
+        done = False
+        return_string = "Success"
+        i = 0
+        while not done:
+            # Get the current Qs and search for the highest Q
+            action = np.argmax(self.get_current_qs())
+            # Move the direction with the highest Q
+            new_angles = self.rob.get_current_joint_config() + self.actions_dict[action]
+            # Move robot into new position
+            self.set_joint_angles_rad(new_angles)
+            # Check for boundaries, check for win, check if max steps are reached max steps
+            in_voxels = self.__check_in_voxels() is True
+            in_win = self.__check_win() is True
+            if (not in_voxels) or (in_win) or (i > max_steps):
+                if not in_voxels: return_string = "Out of bounds"
+                if i > max_steps: return_string = "Infinite Loop"
+                done = True
+            i += 1
+
+        return return_string, tuple(self.get_joint_angles_rad())
+
+
+    def set_starting_angles_rad(self, angles=(float, float, float)):
+
+        # Convert angles to numpy array
+        angles_array = np.asarray(angles)
+
+        # Overwrite Q0 in the robot arm
+        self.rob.q0 = angles_array
+
+        # Reset robot arm to starting position
+        self.reset()
 
 
 

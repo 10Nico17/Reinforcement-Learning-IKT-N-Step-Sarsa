@@ -94,7 +94,8 @@ class Path:
                             distance = round(self.__calculate_nearest_distance(voxel, path)) / 3
                             #input(f"{voxel} distance: {distance}")
                             # Add Voxel with reward
-                            elements.append(((x + k, y + j, z + l), current_reward-distance))
+                            #elements.append(((x + k, y + j, z + l), current_reward-distance))
+                            elements.append(((x + k, y + j, z + l), current_reward))
 
             current_reward += 1 / self.resolution
             #current_reward = -1
