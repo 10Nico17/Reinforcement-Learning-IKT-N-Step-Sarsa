@@ -320,9 +320,9 @@ arm_1.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=Tr
 
 starting_time = time.time()
 
-sections_to_learn = 128
+sections_to_learn = 4
 #start_at_section = 4
-section_length = 1/128
+section_length = 1/64
 voxel_volume = 1
 
 # Number of episodes per section
