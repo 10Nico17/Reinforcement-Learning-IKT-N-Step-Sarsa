@@ -54,7 +54,7 @@ class Path:
     # returns the coordinates of the center of all the voxels that are on the trajectory or
     # within the max_distance starting with the helix_start voxel returns a list of tuples (x, y, z)
     def get_helix_voxels(self):
-        print(f"Calculating Helix Voxels")
+        #print(f"Calculating Helix Voxels")
         elements = []
         winning_voxels = []
         rewards = []
@@ -99,13 +99,13 @@ class Path:
 
             current_reward += 1 / self.resolution
             #current_reward = -1
-            if ((((i/self.resolution) + 0.01) * 100) % 5) == 0:
-                print(f"Process: {int((i/self.resolution)*100)}%\r", end='')
+            #if ((((i/self.resolution) + 0.01) * 100) % 5) == 0:
+                #print(f"Process: {int((i/self.resolution)*100)}%\r", end='')
 
-        print(f"Process: 100%")
+        #print(f"Process: 100%")
 
         # Sort out dual winning voxels
-        print("Removing double elements ")
+        #print("Removing double elements ")
         winning_voxels = list(dict.fromkeys(winning_voxels))
 
         helix = []
@@ -115,7 +115,7 @@ class Path:
 
         for i, element in enumerate(elements):
             coords, reward = element
-            print(f"\rProcess: {int((i/len(elements))*100)}%\r", end='')
+            #print(f"\rProcess: {int((i/len(elements))*100)}%\r", end='')
             if coords not in seen:
                 # Dont add if we did not generate voxels at start of helix and the voxel is at the start of the helix
                 # This mitigates a bug, where it will always generate a voxel at the start of the helix
@@ -127,7 +127,7 @@ class Path:
                     else:
                         rewards.append(reward)
 
-        print(f"Process: 100%")
+        #print(f"Process: 100%")
 
         #for coords, reward in zip(helix, rewards):
         #    print(f"Reward for {coords}, {reward}")

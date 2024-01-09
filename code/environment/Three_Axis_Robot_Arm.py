@@ -12,6 +12,7 @@ from path import Path
 from path_short import Path_Short
 import itertools
 import ujson
+import math
 
 # suppress scientific notation
 np.set_printoptions(suppress=True)
@@ -37,9 +38,9 @@ class Three_Axis_Robot_Arm:
         # Create path for the robot
         #path = Path(helix_start=starting_pos, max_distance=2)
         self.helix_section = helix_section
+        self.section_length = section_length
         helix_section = helix_section * section_length
         # make the section a little longer so each section overlaps a litle
-        section_length *= 1.3
         path = Path(helix_start=starting_pos, max_distance=voxel_volume,
                     generate_percentage_of_helix=section_length, generate_start=helix_section)
         self.voxels, self.winning_voxels, self.rewards = path.get_helix_voxels()
@@ -68,9 +69,8 @@ class Three_Axis_Robot_Arm:
         self.rob = Arm(links, q0, '1-link')
 
         # Do inverse kinematics for the starting position and
-        # create a new arm with the starting position of the voxels
-        start_in_path = int(len(self.path[0]) * helix_section)
-        self.starting_angles = self.rob.ikine((self.path[0][start_in_path], self.path[1][start_in_path], self.path[2][start_in_path]))
+        # create a new arm and set it to the start of the helix
+        self.starting_angles = self.rob.ikine((self.path[0][0], self.path[1][0], self.path[2][0]))
         # do mod 2pi to starting angles to not get crazy large angles
         self.starting_angles = np.array([angle % (2*np.pi) for angle in self.starting_angles])
         # Create arm
@@ -82,7 +82,7 @@ class Three_Axis_Robot_Arm:
         # Create all possible actions
         # Define possible actions for each joint in deg
         # For now 1 degree per action, as the robot will take forever otherwise
-        joint_actions_deg = [-0.1, 0, 0.1]
+        joint_actions_deg = [-0.025, 0, 0.025]
         joint_actions_rad = np.array([self.__deg_to_rad(action) for action in joint_actions_deg])
 
         # Generate all possible action combinations for the 3 joints
@@ -116,6 +116,31 @@ class Three_Axis_Robot_Arm:
 
         # Init out of bounds counter
         self.out_of_bounds_counter = 0
+
+        # Move robot iteratively to the start of the helix section
+        section_length_path = len(self.path[0]) * section_length
+
+        for i in range(0, self.helix_section+1):
+            #print(f"Iteration: {i} of {self.helix_section}")
+            current_place_in_path = int(i * section_length_path)
+            self.starting_angles = self.rob.ikine((self.path[0][current_place_in_path], self.path[1][current_place_in_path], self.path[2][current_place_in_path]), set_robot=False)
+            self.set_joint_angles_rad(self.starting_angles, save=True)
+
+        #self.animate(zoom_path=True, draw_voxels=True, draw_path=True, fps=20)
+        #self.show(draw_path=True, draw_voxels=True, zoom_path=True)
+        # Set starting angles in robot
+        # Overwrite Q0 in the robot arm
+        self.rob.q0 = self.starting_angles
+
+        #print(f"Setting Finishing state: {self.helix_section+1}")
+        current_place_in_path = int((self.helix_section+1) * section_length_path)
+        if(current_place_in_path >= len(self.path[0])): current_place_in_path = len(self.path[0])-1
+        self.desired_angles = self.rob.ikine((self.path[0][current_place_in_path], self.path[1][current_place_in_path], self.path[2][current_place_in_path]), set_robot=False)
+        #self.set_joint_angles_rad(self.desired_angles, save=True)
+        #self.show(draw_path=True, draw_voxels=True, zoom_path=True)
+
+        # Reset robot arm to starting position
+        self.reset()
 
     def __deg_to_rad(self, deg: float) -> float:
         """Convert degree to radiants.
@@ -193,7 +218,12 @@ class Three_Axis_Robot_Arm:
         :return: Bool indicating if the TCP is in a winning voxel
         :rtype: bool
         """
-        return self.current_voxel in self.winning_voxels
+        #return self.current_voxel in self.winning_voxels
+        error = -np.linalg.norm(self.rob.get_current_joint_config()-self.desired_angles, ord=1)*100
+        if error < -0.1:
+            return False
+        else:
+            return True
 
     def __check_in_voxels(self) -> bool:
         """Check if the current position is in a voxel.
@@ -211,18 +241,24 @@ class Three_Axis_Robot_Arm:
         :rtype: int
         """
         # Get index of voxel and return reward
-        try:
-            current_voxel_index = self.voxels_index_dict[self.current_voxel]
-            #print(f"\n    Getting reward. Current Voxel: {self.current_voxel}, index: {current_voxel_index}")
-            #print(f"    In winning_voxels?: {self.current_voxel in self.winning_voxels}")
-            #print(f"    Reward: {self.rewards[current_voxel_index]}\n")
-            return self.rewards[current_voxel_index]
-        except IndexError as e:
-            print(f"Index Error in Six_Axis_Robot_Arm.get_reward(): {e}")
-            return None
-        except ValueError as e:
-            print(f"Value Error in Six_Axis_Robot_Arm.get_reward(): {e}")
-            return None
+        #try:
+        #    current_voxel_index = self.voxels_index_dict[self.current_voxel]
+        #    #print(f"\n    Getting reward. Current Voxel: {self.current_voxel}, index: {current_voxel_index}")
+        #    #print(f"    In winning_voxels?: {self.current_voxel in self.winning_voxels}")
+        #    #print(f"    Reward: {self.rewards[current_voxel_index]}\n")
+        #    return self.rewards[current_voxel_index]
+        #except IndexError as e:
+        #    print(f"Index Error in Six_Axis_Robot_Arm.get_reward(): {e}")
+        #    return None
+        #except ValueError as e:
+        #    print(f"Value Error in Six_Axis_Robot_Arm.get_reward(): {e}")
+        #    return None
+
+        # Calculate current angle to desired angle error
+        error = -np.linalg.norm(self.rob.get_current_joint_config()-self.desired_angles, ord=1)*100
+        #print(f"Get reward. Error = {error}")
+        #print(f"")
+        return error
 
     def get_joint_angles(self) -> (float, float, float):
         """Return current joint angles.
@@ -303,6 +339,7 @@ class Three_Axis_Robot_Arm:
         :return: List of q values
         :rtype: list of float
         """
+        #print(f"self.current_voxel: {self.current_voxel}")
         # Return the value of Q at the index of the current voxel in the index dict
         return self.Q[self.voxels_index_dict[self.current_voxel]]
 
@@ -632,7 +669,7 @@ class Three_Axis_Robot_Arm:
                                      fps=fps, save_path=save_path)
 
     def save_learned_to_file(self):
-        print("Saving Qs and Voxels to file")
+        #print("Saving Qs and Voxels to file")
         # Write Qs to file
         np.save(f"Q_values_section_{self.helix_section}.npy", self.Q)
         #print(f"Saves Qs: {self.Q}")
@@ -646,20 +683,32 @@ class Three_Axis_Robot_Arm:
 
 
     def load_learned_from_file(self):
-        print("Loading Qs and Voxels from file")
+        #print("Loading Qs and Voxels from file")
         # Load Qs from file
-        self.Q = np.load(f"Q_values_section_{self.helix_section}.npy")
+        try:
+            self.Q = np.load(f"Q_values_section_{self.helix_section}.npy")
+        except:
+            print("No file, not loading")
+            return
         #print(f"Loaded Qs: {self.Q}")
         # Load Winning Voxels to file
         self.winning_voxels = []
-        loaded_winning_voxels = np.load(f"Winning_voxels_{self.helix_section}.npy")
+        try:
+            loaded_winning_voxels = np.load(f"Winning_voxels_{self.helix_section}.npy")
+        except:
+            print("No file, not loading")
+            return
         # Convert arrays to tuples
         for i, winning_voxel_arr in enumerate(loaded_winning_voxels):
             self.winning_voxels.append(tuple(winning_voxel_arr))
         #print(f"Loaded winning_voxels: {self.winning_voxels}")
         # Load index dict to file
-        with open(f"Index_dict_{self.helix_section}.json", 'r') as json_file:
-            loaded_dict = ujson.load(json_file)
+        try:
+            with open(f"Index_dict_{self.helix_section}.json", 'r') as json_file:
+                loaded_dict = ujson.load(json_file)
+        except:
+            print("No file, not loading")
+            return
         # Convert strings to tuples
         self.voxels_index_dict = {eval(key): value for key, value in loaded_dict.items()}
         #print(f"Loaded voxels_index_dict: {self.voxels_index_dict}")
@@ -668,20 +717,32 @@ class Three_Axis_Robot_Arm:
     def stitch_from_file(self):
         """Stitch the next segment of voxels and qs from file to the robots Qs and Voxels
         """
-        print("Loading Qs and Voxels from file and stitching them to the robots Qs and voxels")
+        #print("Loading Qs and Voxels from file and stitching them to the robots Qs and voxels")
         # Load Qs from file
-        additional_Qs = np.load(f"Q_values_section_{self.helix_section + 1}.npy")
+        try:
+            additional_Qs = np.load(f"Q_values_section_{self.helix_section + 1}.npy")
+        except:
+            print("No file, not loading")
+            return
         #print(f"Loaded Qs: {self.Q}")
         # Load Winning Voxels from file and overwrite the current winning voxels
         self.winning_voxels = []
-        loaded_winning_voxels = np.load(f"Winning_voxels_{self.helix_section + 1}.npy")
+        try:
+            loaded_winning_voxels = np.load(f"Winning_voxels_{self.helix_section + 1}.npy")
+        except:
+            print("No file, not loading")
+            return
         # Convert arrays to tuples
         for i, winning_voxel_arr in enumerate(loaded_winning_voxels):
             self.winning_voxels.append(tuple(winning_voxel_arr))
         #print(f"Loaded winning_voxels: {self.winning_voxels}")
         # Load index dict to file
-        with open(f"Index_dict_{self.helix_section + 1}.json", 'r') as json_file:
-            loaded_dict = ujson.load(json_file)
+        try:
+            with open(f"Index_dict_{self.helix_section + 1}.json", 'r') as json_file:
+                loaded_dict = ujson.load(json_file)
+        except:
+            print("No file, not loading")
+            return
         # Convert strings to tuples
         additional_voxels_index_dict = {eval(key): value for key, value in loaded_dict.items()}
         self.helix_section += 1
@@ -733,6 +794,20 @@ class Three_Axis_Robot_Arm:
             counter += 1
 
         # Overwrite reverse index dict
+        # set finishing state
+        #print(f"Setting Finishing state: {self.helix_section+1}")
+        section_length_path = len(self.path[0]) * self.section_length
+        current_place_in_path = int((self.helix_section+1) * section_length_path)
+        if(current_place_in_path >= len(self.path[0])): current_place_in_path = len(self.path[0])-1
+        self.desired_angles = self.rob.ikine((self.path[0][current_place_in_path], self.path[1][current_place_in_path], self.path[2][current_place_in_path]), set_robot=False)
+        self.set_joint_angles_rad(self.desired_angles, save=True)
+
+        self.show(draw_path=True, draw_voxels=True, zoom_path=True)
+
+        # Reset robot arm to starting position
+        self.reset()
+
+        self.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
     def get_finishing_angles_rad(self, max_steps=1000) -> (str, (float, float, float)):
         # Reset robot to starting position
@@ -774,10 +849,17 @@ class Three_Axis_Robot_Arm:
 
 
 
-#rob = Three_Axis_Robot_Arm()
+#rob = Three_Axis_Robot_Arm(section_length=1/8, helix_section=0, voxel_volume=1)
+#rob = Three_Axis_Robot_Arm(section_length=1/8, helix_section=1, voxel_volume=1)
+#rob = Three_Axis_Robot_Arm(section_length=1/8, helix_section=2, voxel_volume=1)
+#rob = Three_Axis_Robot_Arm(section_length=1/8, helix_section=3, voxel_volume=1)
+#rob = Three_Axis_Robot_Arm(section_length=1/8, helix_section=4, voxel_volume=1)
+#rob = Three_Axis_Robot_Arm(section_length=1/8, helix_section=5, voxel_volume=1)
+#rob = Three_Axis_Robot_Arm(section_length=1/8, helix_section=6, voxel_volume=1)
+#rob = Three_Axis_Robot_Arm(section_length=1/8, helix_section=7, voxel_volume=1)
 
 #step_size = 10
-
+#
 #for i in range(0, len(rob.path[0]), step_size):
 #    print(f"Iteration: {i/step_size} of {len(rob.path[0])/step_size}")
 #    angles = rob.rob.ikine((rob.path[0][i], rob.path[1][i], rob.path[2][i]), set_robot=False)
@@ -788,4 +870,4 @@ class Three_Axis_Robot_Arm:
 #print(rob.do_move(0))
 
 #rob.show(draw_path=True, draw_voxels=True, zoom_path=True)
-#rob.animate(zoom_path=False, draw_voxels=True, draw_path=True, fps=20)
+#rob.animate(zoom_path=True, draw_voxels=True, draw_path=True, fps=20)
