@@ -323,12 +323,13 @@ while(True):
 arm_1.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
 
 """
+
 num_sections=2
 section_start=0
 
-def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queue, load=False, stitch=False):
+def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queue=None, load=False, stitch=False):
     # Learn section and save to file
-    arm = bot.Three_Axis_Robot_Arm(section_length=section_length, helix_section=section, voxel_volume=1)
+    arm = bot.Three_Axis_Robot_Arm(section_length=section_length, helix_section=section, voxel_volume=2)
 
     if load is True:
         arm.load_learned_from_file()
@@ -336,24 +337,35 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
     if stitch is True:
         arm.stitch_from_file()
 
-    #arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
+    if queue is None:
+        arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
     # Learn until the Q values lead the arm into the finish
     cycle = 0
     while(True):
-        queue.put((section, cycle, "cycle"))
+        if queue is not None:
+            queue.put((section, cycle, "cycle"))
+            sarsa_verbosity_level = 0
+        else:
+            print(f"section: {section}, cycle {cycle}")
+            sarsa_verbosity_level = 1
         #queue.put(f"\n\n********************\nLearning Section {section}\n********************\n\n")
-        episode_lengths, algo = n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon, verbosity_level=0, queue=queue, section=section)
-
+        episode_lengths, algo = n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon, verbosity_level=sarsa_verbosity_level, queue=queue, section=section)
+        alpha *= 0.75
         finishing_angles_last_section = arm.get_finishing_angles_rad()
         #print(f"Done: finishing_angles_section_0: {finishing_angles_last_section}")
-        #arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
+        if queue is None:
+            arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
         if finishing_angles_last_section[0] == "Success":
-            queue.put((section, cycle, "done"))
+            if queue is not None:
+                queue.put((section, cycle, "done"))
+            else:
+                print(f"section: {section}, cycle {cycle}, DONE!")
             break
         cycle += 1
 
-    #arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
+    if queue is None:
+        arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
     arm.save_learned_to_file()
 
 def monitor_queue(total_num_sections, queue):
@@ -390,14 +402,10 @@ def monitor_queue(total_num_sections, queue):
                 print(f" done", end="\r")
         #time.sleep(0.5)  # Short sleep to avoid busy waiting
 
-def learn_parallel(num_processes=64, use_learned=False):
+def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=64, use_learned=False):
     print("\nLearning in Parallel")
 
-    # Number of episodes per section
-    num_episodes = 1000
-    alpha = 0.05
-    gamma = 0.99
-    epsilon = 0.1
+
 
     processes = []
 
@@ -439,7 +447,15 @@ def learn_parallel(num_processes=64, use_learned=False):
 
 starting_time = time.time()
 
-learn_parallel()
+# Number of episodes per section
+num_episodes = 2000
+alpha = 0.05
+gamma = 0.99
+epsilon = 0.1
+
+#learn_parallel(num_episodes, alpha, gamma, epsilon)
+
+learn(1/64, 5, num_episodes, alpha, gamma, epsilon)
 
 total_time = time.time()-starting_time
 
