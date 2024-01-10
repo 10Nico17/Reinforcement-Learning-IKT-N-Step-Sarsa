@@ -21,7 +21,7 @@ class Path:
         # defines resolution of helix generation
         self.resolution = 300
 
-        self.helix_scale = "mm"
+        self.helix_scale = "dff"
 
         if self.helix_scale == "dmm":
             self.helix_factor = 100
@@ -100,7 +100,7 @@ class Path:
             current_reward += 1 / self.resolution
             #current_reward = -1
             #if ((((i/self.resolution) + 0.01) * 100) % 5) == 0:
-                #print(f"Process: {int((i/self.resolution)*100)}%\r", end='')
+            #    print(f"Process: {int((i/self.resolution)*100)}%\r", end='')
 
         #print(f"Process: 100%")
 

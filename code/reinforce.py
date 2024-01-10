@@ -8,6 +8,7 @@ import Three_Axis_Robot_Arm as bot
 import gc
 import multiprocessing
 import threading
+import cProfile
 
 # suppress scientific notation
 np.set_printoptions(suppress=True)
@@ -117,7 +118,7 @@ def sarsa(robot, num_episodes, alpha=0.1, gamma=1.0, epsilon=0.1, verbosity_leve
 
 
 
-def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbosity_level=0, queue=None, section=None):
+def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbosity_level=0, queue=None, section=None, episode_start=0):
 
     # Assume robot is initialized
     n=5
@@ -125,9 +126,9 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
     for episode in range(num_episodes):
 
         # Überprüfe, ob die aktuelle Episode ein Vielfaches von 25.000 ist
-        if episode % 25000 == 0:
+        if (episode+episode_start) % 2000 == 0:
             # Multipliziere den aktuellen Wert von alpha mit 0.1
-            alpha *= 0.1
+            alpha *= 0.5
 
         start_time = time.time()
         # Initialize the starting state S (choosing from the starting positions)
@@ -324,12 +325,12 @@ arm_1.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=Tr
 
 """
 
-num_sections=2
+num_sections=128
 section_start=0
 
 def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queue=None, load=False, stitch=False):
     # Learn section and save to file
-    arm = bot.Three_Axis_Robot_Arm(section_length=section_length, helix_section=section, voxel_volume=2)
+    arm = bot.Three_Axis_Robot_Arm(section_length=section_length, helix_section=section, voxel_volume=1)
 
     if load is True:
         arm.load_learned_from_file()
@@ -342,6 +343,7 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
 
     # Learn until the Q values lead the arm into the finish
     cycle = 0
+    episode_lengths = []
     while(True):
         if queue is not None:
             queue.put((section, cycle, "cycle"))
@@ -350,8 +352,8 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
             print(f"section: {section}, cycle {cycle}")
             sarsa_verbosity_level = 1
         #queue.put(f"\n\n********************\nLearning Section {section}\n********************\n\n")
-        episode_lengths, algo = n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon, verbosity_level=sarsa_verbosity_level, queue=queue, section=section)
-        alpha *= 0.75
+        episode_lengths = episode_lengths + n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon, verbosity_level=sarsa_verbosity_level, queue=queue, section=section, episode_start=(cycle*min_num_episodes))[0]
+        #print(n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon, verbosity_level=sarsa_verbosity_level, queue=queue, section=section, episode_start=(cycle*min_num_episodes))[0])
         finishing_angles_last_section = arm.get_finishing_angles_rad()
         #print(f"Done: finishing_angles_section_0: {finishing_angles_last_section}")
         if queue is None:
@@ -361,12 +363,23 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
                 queue.put((section, cycle, "done"))
             else:
                 print(f"section: {section}, cycle {cycle}, DONE!")
+                arm.save_learned_to_file()
             break
         cycle += 1
 
-    if queue is None:
-        arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
-    arm.save_learned_to_file()
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.set_yscale('log')
+    ax.plot(episode_lengths)
+    
+    ax.set_xlabel('Episoden')
+    ax.set_ylabel('Episode length')
+    
+    print(f"average length of the last 100 episodes: {np.average(episode_lengths[-100:len(episode_lengths)])}")
+    #print(f"last 10 episode lengths: {episode_lengths[-10:len(episode_lengths)]}")
+    #plt.savefig(f'{algo}_plot.png')
+    plt.show()
+    #if queue is None:
+    #    arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
 
 def monitor_queue(total_num_sections, queue):
     print("\n         ", end="")
@@ -404,8 +417,6 @@ def monitor_queue(total_num_sections, queue):
 
 def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=64, use_learned=False):
     print("\nLearning in Parallel")
-
-
 
     processes = []
 
@@ -448,18 +459,17 @@ def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=64, use_le
 starting_time = time.time()
 
 # Number of episodes per section
-num_episodes = 2000
-alpha = 0.05
+num_episodes = 1000
+alpha = 0.01
 gamma = 0.99
 epsilon = 0.1
 
-#learn_parallel(num_episodes, alpha, gamma, epsilon)
-
-learn(1/64, 5, num_episodes, alpha, gamma, epsilon)
+#learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=128)
+learn(1/64, 0, num_episodes, alpha, gamma, epsilon, load=True)
 
 total_time = time.time()-starting_time
 
-print(f"Learned {2} out of {2} sections in a total time of {total_time} seconds")
+print(f"Total time: {total_time} seconds")
 
 """
 

@@ -82,7 +82,7 @@ class Three_Axis_Robot_Arm:
         # Create all possible actions
         # Define possible actions for each joint in deg
         # For now 1 degree per action, as the robot will take forever otherwise
-        joint_actions_deg = [-0.025, 0, 0.025]
+        joint_actions_deg = [-0.05, 0, 0.05]
         joint_actions_rad = np.array([self.__deg_to_rad(action) for action in joint_actions_deg])
 
         # Generate all possible action combinations for the 3 joints
@@ -136,7 +136,7 @@ class Three_Axis_Robot_Arm:
         current_place_in_path = int((self.helix_section+1) * section_length_path)
         if(current_place_in_path >= len(self.path[0])): current_place_in_path = len(self.path[0])-1
         self.desired_angles = self.rob.ikine((self.path[0][current_place_in_path], self.path[1][current_place_in_path], self.path[2][current_place_in_path]), set_robot=False)
-        #self.set_joint_angles_rad(self.desired_angles, save=True)
+        self.set_joint_angles_rad(self.desired_angles, save=True)
         #self.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
         # Reset robot arm to starting position
@@ -856,7 +856,7 @@ class Three_Axis_Robot_Arm:
 #rob = Three_Axis_Robot_Arm(section_length=1/8, helix_section=4, voxel_volume=1)
 #rob = Three_Axis_Robot_Arm(section_length=1/8, helix_section=5, voxel_volume=1)
 #rob = Three_Axis_Robot_Arm(section_length=1/8, helix_section=6, voxel_volume=1)
-#rob = Three_Axis_Robot_Arm(section_length=1/8, helix_section=7, voxel_volume=1)
+#rob = Three_Axis_Robot_Arm(section_length=1, helix_section=0, voxel_volume=1)
 
 #step_size = 10
 #
