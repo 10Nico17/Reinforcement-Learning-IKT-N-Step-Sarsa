@@ -323,8 +323,8 @@ while(True):
 arm_1.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
 
 """
-num_sections=9
-section_start=9
+num_sections=2
+section_start=0
 
 def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queue, load=False, stitch=False):
     # Learn section and save to file
@@ -335,7 +335,6 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
 
     if stitch is True:
         arm.stitch_from_file()
-
 
     #arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
@@ -357,8 +356,8 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
     #arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
     arm.save_learned_to_file()
 
-def monitor_queue(queue):
-    print("\n          ", end="")
+def monitor_queue(total_num_sections, queue):
+    print("\n         ", end="")
     for i in range(int(num_sections/2)-1):
         print(f"     ", end="")
     print("Sections")
@@ -391,7 +390,7 @@ def monitor_queue(queue):
                 print(f" done", end="\r")
         #time.sleep(0.5)  # Short sleep to avoid busy waiting
 
-def learn_parallel(num_processes=64):
+def learn_parallel(num_processes=64, use_learned=False):
     print("\nLearning in Parallel")
 
     # Number of episodes per section
@@ -404,24 +403,36 @@ def learn_parallel(num_processes=64):
 
     queue = multiprocessing.Queue()
 
+    total_sections = num_sections
+
     # Start the queue monitoring thread
-    monitor_thread = threading.Thread(target=monitor_queue, args=(queue,))
+    monitor_thread = threading.Thread(target=monitor_queue, args=(total_sections, queue,))
     monitor_thread.start()
 
-    # only do two sections for now
-    section_length = 1/num_processes
+    stitch = False
 
-    # Create and start processes
-    # For now only do two processes
-    num_processes = num_sections
-    for i in range(num_processes):
-        p = multiprocessing.Process(target=learn, args=(section_length, i+section_start, num_episodes, alpha, gamma, epsilon, queue, False))
-        p.start()
-        processes.append(p)
+    while total_sections != 0:
 
-    # Wait for all processes to finish
-    for p in processes:
-        p.join()
+        # only do two sections for now
+        section_length = 1/num_processes
+
+        # Create and start processes
+        # For now only do two processes
+        # TODO: assign sections depending on total sections
+        num_processes = total_sections
+        for i in range(num_processes):
+            p = multiprocessing.Process(target=learn, args=(section_length, (i*(int(num_sections/total_sections)))+section_start, num_episodes, alpha, gamma, epsilon, queue, use_learned, stitch))
+            p.start()
+            processes.append(p)
+
+        # Wait for all processes to finish
+        for p in processes:
+            p.join()
+
+        total_sections = int(total_sections / 2)
+        stitch = True
+
+
 
     monitor_thread.terminate()
 
