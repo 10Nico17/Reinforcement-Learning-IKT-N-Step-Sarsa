@@ -432,7 +432,7 @@ def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=64, use_le
     monitor_thread.start()
 
     stitch = False
-    max_num_cycles=5
+    max_num_cycles=10
 
 #    while total_sections != 0:
 #
@@ -482,6 +482,20 @@ gamma = 0.99
 epsilon = 0.1
 
 learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections)
+
+for i in range(0, num_sections, 2):
+    learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=i+1, max_num_cycles=5)
+
+for i in range(0, num_sections, 4):
+    learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=i+2, max_num_cycles=5)
+
+for i in range(0, num_sections, 8):
+    learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=i+4, max_num_cycles=5)
+
+for i in range(0, num_sections, 16):
+    learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=i+8, max_num_cycles=5)
+
+learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=16, max_num_cycles=10)
 
 #learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=False)
 #learn(1/num_sections, 1, num_episodes, alpha, gamma, epsilon, load=False)
