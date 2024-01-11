@@ -380,7 +380,7 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
     print(f"average length of the last 100 episodes: {np.average(episode_lengths[-100:len(episode_lengths)])}")
     #print(f"last 10 episode lengths: {episode_lengths[-10:len(episode_lengths)]}")
     #plt.savefig(f'{algo}_plot.png')
-    plt.show()
+    #plt.show()
     #if queue is None:
     #    arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
 
@@ -483,19 +483,8 @@ epsilon = 0.1
 
 learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections)
 
-for i in range(0, num_sections, 2):
-    learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=i+1, max_num_cycles=5)
-
-for i in range(0, num_sections, 4):
-    learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=i+2, max_num_cycles=5)
-
-for i in range(0, num_sections, 8):
-    learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=i+4, max_num_cycles=5)
-
-for i in range(0, num_sections, 16):
-    learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=i+8, max_num_cycles=5)
-
-learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=16, max_num_cycles=10)
+for i in range(31):
+    learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=i+1, max_num_cycles=5)
 
 #learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=False)
 #learn(1/num_sections, 1, num_episodes, alpha, gamma, epsilon, load=False)
