@@ -24,7 +24,7 @@ class Three_Axis_Robot_Arm:
     def __init__(self, starting_pos: (float, float, float) = (-500, 0, 0),
                  section_length=1, helix_section=0,
                  voxels=None, winning_voxels=None,
-                 voxel_volume=1) -> None:
+                 voxel_volume=1, stitch_section=1) -> None:
         """Initialize robot arm.
 
         :param initial_angles: Tuple with the initial angles of the robot joints in degrees
@@ -139,8 +139,16 @@ class Three_Axis_Robot_Arm:
         self.set_joint_angles_rad(self.desired_angles, save=True)
         #self.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
+        # Remember which section to stitch
+        self.section_to_stitch = stitch_section
+
         # Reset robot arm to starting position
         self.reset()
+
+        # Get the current angles error, so we know the maximum error for this section and can norm the errors to -1 to 0
+        self.min_error = -np.linalg.norm(self.rob.get_current_joint_config()-self.desired_angles, ord=1)*100
+        # Error at which the robot is assumed to be done
+        self.max_error = -0.1
 
     def __deg_to_rad(self, deg: float) -> float:
         """Convert degree to radiants.
@@ -212,6 +220,16 @@ class Three_Axis_Robot_Arm:
         z = tcp[2]
         return (int(round(x, 0)), int(round(y, 0)), int(round(z, 0)))
 
+    def __map_range(self, x, in_min, in_max, out_min, out_max):
+        return out_min + (x - in_min) * (out_max - out_min) / (in_max - in_min)
+
+    def __get_error(self) -> float:
+        return -np.linalg.norm(self.rob.get_current_joint_config()-self.desired_angles, ord=1)*100
+
+    def __get_error_normed(self) -> float:
+        #print(f"self.min_error={self.min_error}, self.max_error={self.max_error}, self.__get_error(){self.__get_error()}")
+        return self.__map_range(self.__get_error(), self.min_error, self.max_error, -1, -0.4)
+
     def __check_win(self) -> bool:
         """Check if the current position is in a winning voxel.
 
@@ -219,8 +237,8 @@ class Three_Axis_Robot_Arm:
         :rtype: bool
         """
         #return self.current_voxel in self.winning_voxels
-        error = -np.linalg.norm(self.rob.get_current_joint_config()-self.desired_angles, ord=1)*100
-        if error < -0.1:
+        error = self.__get_error()
+        if error < self.max_error:
             return False
         else:
             return True
@@ -255,7 +273,8 @@ class Three_Axis_Robot_Arm:
         #    return None
 
         # Calculate current angle to desired angle error
-        error = -np.linalg.norm(self.rob.get_current_joint_config()-self.desired_angles, ord=1)*100
+        #error=-1
+        error = self.__get_error_normed()
         #print(f"Get reward. Error = {error}")
         #print(f"")
         return error
@@ -482,6 +501,7 @@ class Three_Axis_Robot_Arm:
         # Check for win
         if self.__check_win() is True:
             win = True
+            reward = 0
 
         # Forward kinematics for TCP coordinate calculation
         tcp_matrix = self.rob.fkine()
@@ -720,7 +740,7 @@ class Three_Axis_Robot_Arm:
         #print("Loading Qs and Voxels from file and stitching them to the robots Qs and voxels")
         # Load Qs from file
         try:
-            additional_Qs = np.load(f"Q_values_section_{self.helix_section + 1}.npy")
+            additional_Qs = np.load(f"Q_values_section_{self.section_to_stitch}.npy")
         except:
             print("No file, not loading")
             return
@@ -728,7 +748,7 @@ class Three_Axis_Robot_Arm:
         # Load Winning Voxels from file and overwrite the current winning voxels
         self.winning_voxels = []
         try:
-            loaded_winning_voxels = np.load(f"Winning_voxels_{self.helix_section + 1}.npy")
+            loaded_winning_voxels = np.load(f"Winning_voxels_{self.section_to_stitch}.npy")
         except:
             print("No file, not loading")
             return
@@ -738,14 +758,14 @@ class Three_Axis_Robot_Arm:
         #print(f"Loaded winning_voxels: {self.winning_voxels}")
         # Load index dict to file
         try:
-            with open(f"Index_dict_{self.helix_section + 1}.json", 'r') as json_file:
+            with open(f"Index_dict_{self.section_to_stitch}.json", 'r') as json_file:
                 loaded_dict = ujson.load(json_file)
         except:
             print("No file, not loading")
             return
         # Convert strings to tuples
         additional_voxels_index_dict = {eval(key): value for key, value in loaded_dict.items()}
-        self.helix_section += 1
+        #self.helix_section += 1
         # At this point there are the additional_voxels_index_dict and additional_Qs
         # Now the voxels from the robot that are overlapping with the new voxels need to be removed
         # Iterate through original index dict and check if the key is the same.
@@ -795,19 +815,26 @@ class Three_Axis_Robot_Arm:
 
         # Overwrite reverse index dict
         # set finishing state
-        #print(f"Setting Finishing state: {self.helix_section+1}")
+        #print(f"Setting Finishing state: {self.stitch_section}")
         section_length_path = len(self.path[0]) * self.section_length
-        current_place_in_path = int((self.helix_section+1) * section_length_path)
+        current_place_in_path = int((self.section_to_stitch+1) * section_length_path)
         if(current_place_in_path >= len(self.path[0])): current_place_in_path = len(self.path[0])-1
         self.desired_angles = self.rob.ikine((self.path[0][current_place_in_path], self.path[1][current_place_in_path], self.path[2][current_place_in_path]), set_robot=False)
         self.set_joint_angles_rad(self.desired_angles, save=True)
 
-        self.show(draw_path=True, draw_voxels=True, zoom_path=True)
+        #self.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
         # Reset robot arm to starting position
         self.reset()
 
-        self.show(draw_path=True, draw_voxels=True, zoom_path=True)
+        #self.show(draw_path=True, draw_voxels=True, zoom_path=True)
+
+        self.section_to_stitch += 1
+
+        # Get the current angles error, so we know the maximum error for this section and can norm the errors to -1 to 0
+        self.min_error = -np.linalg.norm(self.rob.get_current_joint_config()-self.desired_angles, ord=1)*100
+        # Error at which the robot is assumed to be done
+        self.max_error = -0.1
 
     def get_finishing_angles_rad(self, max_steps=1000) -> (str, (float, float, float)):
         # Reset robot to starting position

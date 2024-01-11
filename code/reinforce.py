@@ -112,7 +112,7 @@ def sarsa(robot, num_episodes, alpha=0.1, gamma=1.0, epsilon=0.1, verbosity_leve
 
         end_time = time.time()
         episode_lengths.append(i)
-        print(f"Episode {episode} ended with length {i}. Time for eposiode: {end_time-start_time} s")
+        print(f"Episode {episode} ended with length {i}. Time for eposiode: {end_time-start_time} s.")
         algo = 'sarsa' 
     return episode_lengths, algo
 
@@ -123,12 +123,13 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
     # Assume robot is initialized
     n=5
     episode_lengths = []
+
+    alpha_incr = 1
     for episode in range(num_episodes):
 
-        # Überprüfe, ob die aktuelle Episode ein Vielfaches von 25.000 ist
-        if (episode+episode_start) % 2000 == 0:
-            # Multipliziere den aktuellen Wert von alpha mit 0.1
-            alpha *= 0.5
+        if (alpha > 0.001) and ((episode+episode_start) % 100 == 0) and ((episode+episode_start) != 0):
+            alpha_incr += 1
+            alpha *= 0.98
 
         start_time = time.time()
         # Initialize the starting state S (choosing from the starting positions)
@@ -232,12 +233,12 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
 
         end_time = time.time()
         episode_lengths.append(i)
-        if verbosity_level >= 1: print(f"Episode {episode} ended with length {i}. Time for eposiode: {end_time-start_time} s                            ",
+        if verbosity_level >= 1: print(f"Episode {episode} ended with length {i}. Time for eposiode: {end_time-start_time} s.  Alpha = {alpha}                            ",
                                        end='\r')
         algo = 'sarsa_n_step'
 
     if verbosity_level >= 1: print(f"")
-    return episode_lengths, algo
+    return episode_lengths, algo, alpha
 
 
 """
@@ -325,12 +326,12 @@ arm_1.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=Tr
 
 """
 
-num_sections=128
+num_sections=32
 section_start=0
 
-def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queue=None, load=False, stitch=False):
+def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queue=None, load=False, stitch=False, max_num_cycles=5, stitch_section=1):
     # Learn section and save to file
-    arm = bot.Three_Axis_Robot_Arm(section_length=section_length, helix_section=section, voxel_volume=1)
+    arm = bot.Three_Axis_Robot_Arm(section_length=section_length, helix_section=section, voxel_volume=2, stitch_section=stitch_section)
 
     if load is True:
         arm.load_learned_from_file()
@@ -338,13 +339,15 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
     if stitch is True:
         arm.stitch_from_file()
 
-    if queue is None:
-        arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
+    #if queue is None:
+    #    arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
+
+    #if queue is None:
+    #    arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
 
     # Learn until the Q values lead the arm into the finish
-    cycle = 0
     episode_lengths = []
-    while(True):
+    for cycle in range(max_num_cycles):
         if queue is not None:
             queue.put((section, cycle, "cycle"))
             sarsa_verbosity_level = 0
@@ -352,26 +355,26 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
             print(f"section: {section}, cycle {cycle}")
             sarsa_verbosity_level = 1
         #queue.put(f"\n\n********************\nLearning Section {section}\n********************\n\n")
-        episode_lengths = episode_lengths + n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon, verbosity_level=sarsa_verbosity_level, queue=queue, section=section, episode_start=(cycle*min_num_episodes))[0]
+        eps, _, alpha = n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon, verbosity_level=sarsa_verbosity_level, queue=queue, section=section, episode_start=(cycle*min_num_episodes))
+        episode_lengths = episode_lengths + eps
         #print(n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon, verbosity_level=sarsa_verbosity_level, queue=queue, section=section, episode_start=(cycle*min_num_episodes))[0])
         finishing_angles_last_section = arm.get_finishing_angles_rad()
         #print(f"Done: finishing_angles_section_0: {finishing_angles_last_section}")
-        if queue is None:
-            arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
-        if finishing_angles_last_section[0] == "Success":
+        #if queue is None:
+        #    arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
+        if (finishing_angles_last_section[0] == "Success") or (cycle == max_num_cycles-1):
             if queue is not None:
                 queue.put((section, cycle, "done"))
             else:
                 print(f"section: {section}, cycle {cycle}, DONE!")
-                arm.save_learned_to_file()
             break
-        cycle += 1
 
+    arm.save_learned_to_file()
     fig, ax = plt.subplots(figsize=(10, 10))
-    ax.set_yscale('log')
+    #ax.set_yscale('log')
     ax.plot(episode_lengths)
     
-    ax.set_xlabel('Episoden')
+    ax.set_xlabel('Episodes')
     ax.set_ylabel('Episode length')
     
     print(f"average length of the last 100 episodes: {np.average(episode_lengths[-100:len(episode_lengths)])}")
@@ -429,43 +432,63 @@ def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=64, use_le
     monitor_thread.start()
 
     stitch = False
+    max_num_cycles=5
 
-    while total_sections != 0:
+#    while total_sections != 0:
+#
+#        # only do two sections for now
+#        section_length = 1/num_processes
+#
+#        # Create and start processes
+#        # For now only do two processes
+#        # TODO: assign sections depending on total sections
+#        num_processes = total_sections
+#        for i in range(num_processes):
+#            p = multiprocessing.Process(target=learn, args=(section_length, (i*(int(num_sections/total_sections)))+section_start, num_episodes, alpha, gamma, epsilon, queue, use_learned, stitch, max_num_cycles, ))
+#            p.start()
+#            processes.append(p)
+#
+#        # Wait for all processes to finish
+#        for p in processes:
+#            p.join()
+#
+#        total_sections = int(total_sections / 2)
+#        stitch = True
 
-        # only do two sections for now
-        section_length = 1/num_processes
+    # only do two sections for now
+    section_length = 1/num_processes
 
-        # Create and start processes
-        # For now only do two processes
-        # TODO: assign sections depending on total sections
-        num_processes = total_sections
-        for i in range(num_processes):
-            p = multiprocessing.Process(target=learn, args=(section_length, (i*(int(num_sections/total_sections)))+section_start, num_episodes, alpha, gamma, epsilon, queue, use_learned, stitch))
-            p.start()
-            processes.append(p)
+    # Create and start processes
+    # For now only do two processes
+    # TODO: assign sections depending on total sections
+    num_processes = total_sections
+    for i in range(num_processes):
+        p = multiprocessing.Process(target=learn, args=(section_length, i, num_episodes, alpha, gamma, epsilon, queue, use_learned, stitch, max_num_cycles))
+        p.start()
+        processes.append(p)
 
-        # Wait for all processes to finish
-        for p in processes:
-            p.join()
-
-        total_sections = int(total_sections / 2)
-        stitch = True
-
-
+    # Wait for all processes to finish
+    for p in processes:
+        p.join()
 
     monitor_thread.terminate()
-
 
 starting_time = time.time()
 
 # Number of episodes per section
-num_episodes = 1000
-alpha = 0.01
+num_episodes = 2500
+alpha = 0.1
 gamma = 0.99
 epsilon = 0.1
 
-#learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=128)
-learn(1/64, 0, num_episodes, alpha, gamma, epsilon, load=True)
+learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections)
+
+#learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=False)
+#learn(1/num_sections, 1, num_episodes, alpha, gamma, epsilon, load=False)
+#alpha = 0.0001
+#learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=1)
+#learn(1/num_sections, 2, num_episodes, alpha, gamma, epsilon, load=True)
+#learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=2)
 
 total_time = time.time()-starting_time
 
