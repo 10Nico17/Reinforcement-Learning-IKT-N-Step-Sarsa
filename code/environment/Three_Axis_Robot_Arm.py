@@ -24,7 +24,8 @@ class Three_Axis_Robot_Arm:
     def __init__(self, starting_pos: (float, float, float) = (-500, 0, 0),
                  section_length=1, helix_section=0,
                  voxels=None, winning_voxels=None,
-                 voxel_volume=1, stitch_section=1) -> None:
+                 voxel_volume=1, stitch_section=1, 
+                 use_norm_rewarding=True) -> None:
         """Initialize robot arm.
 
         :param initial_angles: Tuple with the initial angles of the robot joints in degrees
@@ -148,7 +149,24 @@ class Three_Axis_Robot_Arm:
         # Get the current angles error, so we know the maximum error for this section and can norm the errors to -1 to 0
         self.min_error = -np.linalg.norm(self.rob.get_current_joint_config()-self.desired_angles, ord=1)*100
         # Error at which the robot is assumed to be done
-        self.max_error = -0.1
+        self.max_error = -0.15
+
+        self.num_sections = int(1/section_length)
+
+        self.min_reward = -self.num_sections+self.helix_section
+        self.max_reward = -self.num_sections+self.helix_section+0.6
+
+        self.reward_out_of_bounds = -500
+
+        # Create Q
+        self.Q = -np.random.rand(amount_voxels, total_amount_actions)
+
+        # Set ending positions to zero in Q
+        for winning_voxel in self.winning_voxels:
+            self.Q[self.voxels_index_dict[winning_voxel]] = np.zeros(total_amount_actions)
+
+        # Calculate the rewards based on the position of the robot in each voxel
+        self.__calc_rewards()
 
     def __deg_to_rad(self, deg: float) -> float:
         """Convert degree to radiants.
@@ -228,7 +246,7 @@ class Three_Axis_Robot_Arm:
 
     def __get_error_normed(self) -> float:
         #print(f"self.min_error={self.min_error}, self.max_error={self.max_error}, self.__get_error(){self.__get_error()}")
-        return self.__map_range(self.__get_error(), self.min_error, self.max_error, -1, -0.4)
+        return self.__map_range(self.__get_error(), self.min_error, self.max_error, self.min_reward, self.max_reward)
 
     def __check_win(self) -> bool:
         """Check if the current position is in a winning voxel.
@@ -274,10 +292,28 @@ class Three_Axis_Robot_Arm:
 
         # Calculate current angle to desired angle error
         #error=-1
-        error = self.__get_error_normed()
+        if use_norm_rewarding is True:
+            error = self.__get_error_normed()
+        else:
+            error = self.rewards[self.voxels_index_dict[self.current_voxel]]
         #print(f"Get reward. Error = {error}")
         #print(f"")
         return error
+
+    def __calc_rewards(self) -> None:
+        # Move robot to every voxel and calculate the reward for the given voxel
+        for voxel in self.voxels_index_dict:
+            index = self.voxels_index_dict[voxel]
+            print(f"Calculating rewards: {int(index*100/len(self.voxels_index_dict))}%   ", end="\r")
+            angles_for_voxel = self.rob.ikine((voxel[0], voxel[1], voxel[2]), set_robot=False)
+            self.set_joint_angles_rad(angles_for_voxel, save=True)
+            #self.show(draw_path=True, draw_voxels=True, zoom_path=True)
+            if not self.__check_win():
+                self.rewards[index] = self.__get_reward()
+            else:
+                self.rewards[index] = self.max_reward+0.4
+        #print(self.rewards)
+        #self.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
     def get_joint_angles(self) -> (float, float, float):
         """Return current joint angles.
@@ -494,14 +530,14 @@ class Three_Axis_Robot_Arm:
             self.set_joint_angles_rad(self.starting_angles, set_last_voxel=False)
             #self.last_voxel = self.current_voxel
             # High punishment for going out of bounds!
-            reward = -5
+            reward = self.reward_out_of_bounds
             #print("\nOut of bounds!\n")
         else:
             reward = self.__get_reward()
         # Check for win
         if self.__check_win() is True:
             win = True
-            reward = 0
+            reward = self.max_reward+0.4
 
         # Forward kinematics for TCP coordinate calculation
         tcp_matrix = self.rob.fkine()
@@ -828,6 +864,8 @@ class Three_Axis_Robot_Arm:
         self.reset()
 
         #self.show(draw_path=True, draw_voxels=True, zoom_path=True)
+
+        self.max_reward = -self.num_sections+self.helix_section+0.6+self.section_to_stitch
 
         self.section_to_stitch += 1
 

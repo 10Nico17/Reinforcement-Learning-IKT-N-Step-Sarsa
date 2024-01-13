@@ -370,17 +370,17 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
             break
 
     arm.save_learned_to_file()
-    #fig, ax = plt.subplots(figsize=(10, 10))
-    #ax.set_yscale('log')
-    #ax.plot(episode_lengths)
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.set_yscale('log')
+    ax.plot(episode_lengths)
     
-    #ax.set_xlabel('Episodes')
-    #ax.set_ylabel('Episode length')
+    ax.set_xlabel('Episodes')
+    ax.set_ylabel('Episode length')
     
     #print(f"average length of the last 100 episodes: {np.average(episode_lengths[-100:len(episode_lengths)])}")
-    #print(f"last 10 episode lengths: {episode_lengths[-10:len(episode_lengths)]}")
+    print(f"last 10 episode lengths: {episode_lengths[-10:len(episode_lengths)]}")
     #plt.savefig(f'{algo}_plot.png')
-    #plt.show()
+    plt.show()
     if queue is None:
         arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
 
@@ -481,10 +481,21 @@ alpha = 0.1
 gamma = 0.99
 epsilon = 0.1
 
-learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections)
+
+# Adjust print options
+np.set_printoptions(threshold=np.inf)
+
+#learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections)
+
+# Learn section and save to file
+
+learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=False, max_num_cycles=5, use_norm_rewarding=True)
+learn(1/num_sections, 1, num_episodes, alpha, gamma, epsilon, load=False, max_num_cycles=5, use_norm_rewarding=True)
+
+learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=2, max_num_cycles=3, use_norm_rewarding=False)
 
 #for i in range(31):
-#learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=2, max_num_cycles=3)
+
 #learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=3, max_num_cycles=3)
 
 #learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=False)
