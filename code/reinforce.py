@@ -485,14 +485,14 @@ epsilon = 0.1
 # Adjust print options
 np.set_printoptions(threshold=np.inf)
 
-#learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections)
+learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections)
 
 # Learn section and save to file
 
-learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=False, max_num_cycles=5, use_norm_rewarding=True)
-learn(1/num_sections, 1, num_episodes, alpha, gamma, epsilon, load=False, max_num_cycles=5, use_norm_rewarding=True)
+#learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=False, max_num_cycles=5, use_norm_rewarding=True)
+#learn(1/num_sections, 1, num_episodes, alpha, gamma, epsilon, load=False, max_num_cycles=5, use_norm_rewarding=True)
 
-learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=2, max_num_cycles=3, use_norm_rewarding=False)
+#learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=2, max_num_cycles=3, use_norm_rewarding=False)
 
 #for i in range(31):
 

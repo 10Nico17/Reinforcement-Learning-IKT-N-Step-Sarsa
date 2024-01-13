@@ -49,6 +49,8 @@ class Three_Axis_Robot_Arm:
         self.path = path.get_helix_data()
         amount_voxels = len(self.voxels)
 
+        self.use_norm_rewarding = use_norm_rewarding
+
         # Create hashtable of voxels with a unique index for each voxel
         self.voxels_index_dict = {value: index for index, value in enumerate(self.voxels)}
         #print(f"\nVoxels index dict: {self.voxels_index_dict}\n")
@@ -166,7 +168,7 @@ class Three_Axis_Robot_Arm:
             self.Q[self.voxels_index_dict[winning_voxel]] = np.zeros(total_amount_actions)
 
         # Calculate the rewards based on the position of the robot in each voxel
-        self.__calc_rewards()
+        #self.__calc_rewards()
 
     def __deg_to_rad(self, deg: float) -> float:
         """Convert degree to radiants.
@@ -292,7 +294,7 @@ class Three_Axis_Robot_Arm:
 
         # Calculate current angle to desired angle error
         #error=-1
-        if use_norm_rewarding is True:
+        if self.use_norm_rewarding is True:
             error = self.__get_error_normed()
         else:
             error = self.rewards[self.voxels_index_dict[self.current_voxel]]
@@ -304,7 +306,7 @@ class Three_Axis_Robot_Arm:
         # Move robot to every voxel and calculate the reward for the given voxel
         for voxel in self.voxels_index_dict:
             index = self.voxels_index_dict[voxel]
-            print(f"Calculating rewards: {int(index*100/len(self.voxels_index_dict))}%   ", end="\r")
+            #print(f"Calculating rewards: {int(index*100/len(self.voxels_index_dict))}%   ", end="\r")
             angles_for_voxel = self.rob.ikine((voxel[0], voxel[1], voxel[2]), set_robot=False)
             self.set_joint_angles_rad(angles_for_voxel, save=True)
             #self.show(draw_path=True, draw_voxels=True, zoom_path=True)
@@ -736,6 +738,9 @@ class Three_Axis_Robot_Arm:
         with open(f"Index_dict_{self.helix_section}.json", 'w') as json_file:
             json_file.write(ujson.dumps(self.voxels_index_dict))
         #print(f"Saves voxels_index_dict: {self.voxels_index_dict}")
+        # Write Rewards to file
+        self.__calc_rewards()
+        np.save(f"Rewards_{self.helix_section}.npy", self.rewards)
 
 
     def load_learned_from_file(self):
@@ -768,6 +773,12 @@ class Three_Axis_Robot_Arm:
         # Convert strings to tuples
         self.voxels_index_dict = {eval(key): value for key, value in loaded_dict.items()}
         #print(f"Loaded voxels_index_dict: {self.voxels_index_dict}")
+        # Load Rewards from file
+        try:
+            self.rewards = np.load(f"Rewards_{self.helix_section}.npy")
+        except:
+            print("No file, not loading")
+            return
 
 
     def stitch_from_file(self):
@@ -833,21 +844,21 @@ class Three_Axis_Robot_Arm:
         #print(f"Len self.Q after: {len(self.Q)}")
 
         # Update indicies, update self.voxels for animation, update rewards
-        counter = 0
-        self.voxels = []
-        self.rewards = []
-        reward_incr = 1/len(self.voxels_index_dict)
-        current_reward = -1
-        for voxel in self.voxels_index_dict:
-            self.voxels_index_dict[voxel] = counter
-            self.voxels.append(voxel)
-            if voxel in self.winning_voxels:
-                self.rewards.append(0)
-            else:
-                self.rewards.append(current_reward)
-                current_reward += reward_incr
-
-            counter += 1
+#        counter = 0
+#        self.voxels = []
+#        self.rewards = []
+#        reward_incr = 1/len(self.voxels_index_dict)
+#        current_reward = -1
+#        for voxel in self.voxels_index_dict:
+#            self.voxels_index_dict[voxel] = counter
+#            self.voxels.append(voxel)
+#            if voxel in self.winning_voxels:
+#                self.rewards.append(0)
+#            else:
+#                self.rewards.append(current_reward)
+#                current_reward += reward_incr
+#
+#            counter += 1
 
         # Overwrite reverse index dict
         # set finishing state
