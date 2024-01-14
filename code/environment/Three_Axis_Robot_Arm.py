@@ -24,7 +24,7 @@ class Three_Axis_Robot_Arm:
     def __init__(self, starting_pos: (float, float, float) = (-500, 0, 0),
                  section_length=1, helix_section=0,
                  voxels=None, winning_voxels=None,
-                 voxel_volume=1, stitch_section=1, 
+                 voxel_volume=1, stitch_section=1,
                  use_norm_rewarding=True) -> None:
         """Initialize robot arm.
 
@@ -85,7 +85,7 @@ class Three_Axis_Robot_Arm:
         # Create all possible actions
         # Define possible actions for each joint in deg
         # For now 1 degree per action, as the robot will take forever otherwise
-        joint_actions_deg = [-0.05, 0, 0.05]
+        joint_actions_deg = [-0.1, 0, 0.1]
         joint_actions_rad = np.array([self.__deg_to_rad(action) for action in joint_actions_deg])
 
         # Generate all possible action combinations for the 3 joints
@@ -151,7 +151,7 @@ class Three_Axis_Robot_Arm:
         # Get the current angles error, so we know the maximum error for this section and can norm the errors to -1 to 0
         self.min_error = -np.linalg.norm(self.rob.get_current_joint_config()-self.desired_angles, ord=1)*100
         # Error at which the robot is assumed to be done
-        self.max_error = -0.15
+        self.max_error = -0.25
 
         self.num_sections = int(1/section_length)
 
@@ -256,12 +256,14 @@ class Three_Axis_Robot_Arm:
         :return: Bool indicating if the TCP is in a winning voxel
         :rtype: bool
         """
-        #return self.current_voxel in self.winning_voxels
-        error = self.__get_error()
-        if error < self.max_error:
-            return False
+        if self.use_norm_rewarding is True:
+            error = self.__get_error()
+            if error < self.max_error:
+                return False
+            else:
+                return True
         else:
-            return True
+            return self.current_voxel in self.winning_voxels
 
     def __check_in_voxels(self) -> bool:
         """Check if the current position is in a voxel.
@@ -726,7 +728,7 @@ class Three_Axis_Robot_Arm:
                                      winning_voxels=self.winning_voxels,
                                      fps=fps, save_path=save_path)
 
-    def save_learned_to_file(self):
+    def save_learned_to_file(self, recalculate_rewards=True):
         #print("Saving Qs and Voxels to file")
         # Write Qs to file
         np.save(f"Q_values_section_{self.helix_section}.npy", self.Q)
@@ -739,7 +741,9 @@ class Three_Axis_Robot_Arm:
             json_file.write(ujson.dumps(self.voxels_index_dict))
         #print(f"Saves voxels_index_dict: {self.voxels_index_dict}")
         # Write Rewards to file
-        self.__calc_rewards()
+        if recalculate_rewards is True:
+            self.__calc_rewards()
+        #print(f"Save rewards, after self.__calc_rewards(), rewards={self.rewards}")
         np.save(f"Rewards_{self.helix_section}.npy", self.rewards)
 
 
@@ -782,6 +786,8 @@ class Three_Axis_Robot_Arm:
 
 
     def stitch_from_file(self):
+
+        #print(f"len(slef.q): {len(self.Q)}, len(self.rewards): {len(self.rewards)}")
         """Stitch the next segment of voxels and qs from file to the robots Qs and Voxels
         """
         #print("Loading Qs and Voxels from file and stitching them to the robots Qs and voxels")
@@ -812,6 +818,18 @@ class Three_Axis_Robot_Arm:
             return
         # Convert strings to tuples
         additional_voxels_index_dict = {eval(key): value for key, value in loaded_dict.items()}
+        # Load Rewards from file
+        try:
+            additional_rewards = np.load(f"Rewards_{self.section_to_stitch}.npy")
+        except:
+            print("No file, not loading")
+            return
+
+        #print(f"self.rewards={self.rewards}")
+        #print(f"additional_rewards={additional_rewards}")
+        #print(f"len(self.additional_Qs)={len(additional_Qs)}")
+        #print(f"len(self.rewards)={len(self.rewards)}")
+        #print(f"len(additional_rewards)={len(additional_rewards)}")
         #self.helix_section += 1
         # At this point there are the additional_voxels_index_dict and additional_Qs
         # Now the voxels from the robot that are overlapping with the new voxels need to be removed
@@ -831,6 +849,10 @@ class Three_Axis_Robot_Arm:
         self.voxels_index_dict = dict(temp_index_dict)
         # Delete indicies from Q
         self.Q = np.delete(self.Q, indicies_to_delete, axis=0)
+        #self.__calc_rewards()
+        self.rewards = np.delete(self.rewards, indicies_to_delete)
+        #print(f"len(self.Q) after delete={len(self.Q)}")
+        #print(f"len(self.rewards) after delete={len(self.rewards)}")
 
         #print(f"Len self.voxels_index_dict before: {len(self.voxels_index_dict)}")
         #print(f"Len self.Q before: {len(self.Q)}")
@@ -839,26 +861,29 @@ class Three_Axis_Robot_Arm:
         self.voxels_index_dict.update(additional_voxels_index_dict)
         # Appen new Qs
         self.Q = np.append(self.Q, additional_Qs, axis=0)
+        #print(f"Len(self.q)={len(self.Q)}")
+        self.rewards = np.append(self.rewards, additional_rewards)
+        #print(f"Len(self.rewards)={len(self.rewards)}")
 
         #print(f"Len self.voxels_index_dict after: {len(self.voxels_index_dict)}")
         #print(f"Len self.Q after: {len(self.Q)}")
 
         # Update indicies, update self.voxels for animation, update rewards
-#        counter = 0
-#        self.voxels = []
-#        self.rewards = []
-#        reward_incr = 1/len(self.voxels_index_dict)
-#        current_reward = -1
-#        for voxel in self.voxels_index_dict:
-#            self.voxels_index_dict[voxel] = counter
-#            self.voxels.append(voxel)
-#            if voxel in self.winning_voxels:
-#                self.rewards.append(0)
-#            else:
-#                self.rewards.append(current_reward)
-#                current_reward += reward_incr
-#
-#            counter += 1
+        counter = 0
+        self.voxels = []
+        #self.rewards = []
+        #reward_incr = 1/len(self.voxels_index_dict)
+        #current_reward = -1
+        for voxel in self.voxels_index_dict:
+            self.voxels_index_dict[voxel] = counter
+            self.voxels.append(voxel)
+            #if voxel in self.winning_voxels:
+            #    self.rewards.append(0)
+            #else:
+            #    self.rewards.append(current_reward)
+            #    current_reward += reward_incr
+
+            counter += 1
 
         # Overwrite reverse index dict
         # set finishing state
