@@ -246,20 +246,25 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
 
 num_sections=64
 section_start=0
-learn_sections=16
+learn_sections=64
 
 def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queue=None, load=False, stitch=False, max_num_cycles=5, stitch_section=1, use_norm_rewarding=True, draw_robot=False):
     # Learn section and save to file
-    arm = bot.Three_Axis_Robot_Arm(section_length=section_length, helix_section=section, voxel_volume=1, stitch_section=stitch_section, use_norm_rewarding=use_norm_rewarding)
+    arm = bot.Three_Axis_Robot_Arm(section_length=section_length, helix_section=section, voxel_volume=1, stitch_section=1, use_norm_rewarding=use_norm_rewarding)
 
     if load is True:
         arm.load_learned_from_file()
 
     if stitch is True:
-        arm.stitch_from_file()
+        if stitch_section == "all":
+            total_sections = int(1/section_length)
+            for i in range(total_sections):
+                arm.stitch_from_file()
+        else:
+            arm.stitch_from_file()
 
-    if queue is None:
-        arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
+    #if queue is None:
+    #    arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
     #if queue is None:
     #    arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
@@ -407,9 +412,11 @@ def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=64, use_le
 
         processes = []
 
+        return
+
         queue.put((int(learn_sections/2), 0, "next"))
 
-        use_learned=True
+        use_learned = True
         use_norm_rewarding = False
         stitch = True
         if concatenate_every == learn_sections/2:
@@ -443,14 +450,14 @@ np.set_printoptions(threshold=np.inf)
 #arm.save_learned_to_file()
 #arm.stitch_from_file()
 
-learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=False)
+#learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=False)
 
 # Learn section and save to file
 
 #learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=False, max_num_cycles=5, use_norm_rewarding=True)
 #learn(1/num_sections, 1, num_episodes, alpha, gamma, epsilon, load=False, max_num_cycles=5, use_norm_rewarding=True)
 
-#learn(1/num_sections, 4, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=5, max_num_cycles=2, use_norm_rewarding=False)
+learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section="all", max_num_cycles=2, use_norm_rewarding=False)
 #learn(1/num_sections, 6, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=7, max_num_cycles=2, use_norm_rewarding=False)
 #learn(1/num_sections, 4, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=6, max_num_cycles=4, use_norm_rewarding=False)
 #learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=4, max_num_cycles=4, use_norm_rewarding=False)

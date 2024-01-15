@@ -38,8 +38,12 @@ class Three_Axis_Robot_Arm:
         """
         # Create path for the robot
         #path = Path(helix_start=starting_pos, max_distance=2)
+        voxel_volume = 1
         self.helix_section = helix_section
-        self.section_length = section_length*1.04
+        if(helix_section != int((1/section_length))-1):
+            self.section_length = section_length*1.3
+        else:
+            self.section_length = section_length
         helix_section = helix_section * section_length
         # make the section a little longer so each section overlaps a litle
         path = Path(helix_start=starting_pos, max_distance=voxel_volume,
@@ -837,8 +841,38 @@ class Three_Axis_Robot_Arm:
         #self.helix_section += 1
         # At this point there are the additional_voxels_index_dict and additional_Qs
         # Now the voxels from the robot that are overlapping with the new voxels need to be removed
-        # Iterate through original index dict and check if the key is the same.
-        # Remove identical keys from the original index dict as well as the orininal Q values
+        # Delete Q values in front of the starting position of the new section and
+        # behind the ending position of the original secitons
+        # Iterate through the original index dict and check if the key is the same.
+        # Combine the Q Values of the overlapping indicies by a weighted average
+        """
+        self.set_joint_angles_rad(self.desired_angles, save=True)
+
+        #self.show(draw_path=True, draw_voxels=True, zoom_path=True)
+        print(self.voxels_index_dict)
+
+        self.show(draw_path=True, draw_voxels=True, zoom_path=True)
+
+        # Get all keys in the dictionary
+        keys = list(self.voxels_index_dict.keys())
+        
+        # Determine the keys to remove
+        voxels_to_remove = keys[-9:]
+
+        print(f"deleting: {voxels_to_remove}")
+        
+        indicies_to_delete = []
+        # Remove the selected keys
+        for voxel in voxels_to_remove:
+            indicies_to_delete.append(self.voxels_index_dict[voxel])
+            del self.voxels_index_dict[voxel]
+
+        self.Q = np.delete(self.Q, indicies_to_delete, axis=0)
+
+        print(self.voxels_index_dict)
+
+        self.show(draw_path=True, draw_voxels=True, zoom_path=True)
+        """
         temp_index_dict = dict(self.voxels_index_dict)
         indicies_to_delete = []
         for voxel in self.voxels_index_dict:
@@ -872,7 +906,6 @@ class Three_Axis_Robot_Arm:
         self.rewards = np.array([reward / 2 for reward in self.rewards])
         self.reward_out_of_bounds = -2
         self.reward_step = -0.5
-
 
         #print(f"Len self.voxels_index_dict after: {len(self.voxels_index_dict)}")
         #print(f"Len self.Q after: {len(self.Q)}")
