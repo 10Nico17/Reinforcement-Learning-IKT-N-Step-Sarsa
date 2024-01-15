@@ -39,11 +39,11 @@ class Three_Axis_Robot_Arm:
         # Create path for the robot
         #path = Path(helix_start=starting_pos, max_distance=2)
         self.helix_section = helix_section
-        self.section_length = section_length
+        self.section_length = section_length*1.04
         helix_section = helix_section * section_length
         # make the section a little longer so each section overlaps a litle
         path = Path(helix_start=starting_pos, max_distance=voxel_volume,
-                    generate_percentage_of_helix=section_length, generate_start=helix_section)
+                    generate_percentage_of_helix=self.section_length, generate_start=helix_section)
         self.voxels, self.winning_voxels, self.rewards = path.get_helix_voxels()
         self.voxel_size = 1
         self.path = path.get_helix_data()
@@ -148,17 +148,20 @@ class Three_Axis_Robot_Arm:
         # Reset robot arm to starting position
         self.reset()
 
+        #self.show(draw_path=True, draw_voxels=True, zoom_path=True)
+
         # Get the current angles error, so we know the maximum error for this section and can norm the errors to -1 to 0
         self.min_error = -np.linalg.norm(self.rob.get_current_joint_config()-self.desired_angles, ord=1)*100
         # Error at which the robot is assumed to be done
-        self.max_error = -0.25
+        self.max_error = -0.3
 
         self.num_sections = int(1/section_length)
 
         self.min_reward = -self.num_sections+self.helix_section
         self.max_reward = -self.num_sections+self.helix_section+0.6
 
-        self.reward_out_of_bounds = -500
+        self.reward_out_of_bounds = -2
+        self.reward_step = -1
 
         # Create Q
         self.Q = -np.random.rand(amount_voxels, total_amount_actions)
@@ -296,13 +299,14 @@ class Three_Axis_Robot_Arm:
 
         # Calculate current angle to desired angle error
         #error=-1
-        if self.use_norm_rewarding is True:
-            error = self.__get_error_normed()
-        else:
-            error = self.rewards[self.voxels_index_dict[self.current_voxel]]
+        #if self.use_norm_rewarding is True:
+        #    error = self.__get_error_normed()
+        #else:
+        #    error = self.rewards[self.voxels_index_dict[self.current_voxel]]
         #print(f"Get reward. Error = {error}")
         #print(f"")
-        return error
+        #return error
+        return self.reward_step
 
     def __calc_rewards(self) -> None:
         # Move robot to every voxel and calculate the reward for the given voxel
@@ -541,7 +545,7 @@ class Three_Axis_Robot_Arm:
         # Check for win
         if self.__check_win() is True:
             win = True
-            reward = self.max_reward+0.4
+            reward = 0
 
         # Forward kinematics for TCP coordinate calculation
         tcp_matrix = self.rob.fkine()
@@ -864,6 +868,11 @@ class Three_Axis_Robot_Arm:
         #print(f"Len(self.q)={len(self.Q)}")
         self.rewards = np.append(self.rewards, additional_rewards)
         #print(f"Len(self.rewards)={len(self.rewards)}")
+        # Increase rewards so we don't overwrite the well learned q values
+        self.rewards = np.array([reward / 2 for reward in self.rewards])
+        self.reward_out_of_bounds = -2
+        self.reward_step = -0.5
+
 
         #print(f"Len self.voxels_index_dict after: {len(self.voxels_index_dict)}")
         #print(f"Len self.Q after: {len(self.Q)}")
