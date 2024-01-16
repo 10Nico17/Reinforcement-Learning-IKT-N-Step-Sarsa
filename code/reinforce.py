@@ -432,8 +432,8 @@ def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=64, use_le
 starting_time = time.time()
 
 # Number of episodes per section
-num_episodes = 5
-alpha = 0.02
+num_episodes = 2
+alpha = 0.008
 gamma = 0.99
 epsilon = 0.1
 
@@ -450,36 +450,37 @@ arm.load_learned_from_file()
 arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
 
 episode_lengths = []
-max_num_cycles = 100
+max_num_cycles = 500
 section = 0
 
 for cycle in range(max_num_cycles):
-    print(f"section: {section}, cycle {cycle}")
+    print(f"cycle {cycle}")
     sarsa_verbosity_level = 1
     #queue.put(f"\n\n********************\nLearning Section {section}\n********************\n\n")
     eps, _, alpha = n_step_sarsa(arm, num_episodes, alpha, gamma, epsilon, verbosity_level=sarsa_verbosity_level, queue=None, section=0, episode_start=(cycle*num_episodes))
     episode_lengths = episode_lengths + eps
     #print(n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon, verbosity_level=sarsa_verbosity_level, queue=queue, section=section, episode_start=(cycle*min_num_episodes))[0])
-    finishing_angles_last_section = arm.get_finishing_angles_rad()
+    finishing_angles_last_section = arm.get_finishing_angles_rad(max_steps=2000)
     #print(f"Done: finishing_angles_section_0: {finishing_angles_last_section}")
     #if queue is None:
     #    arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
     if (finishing_angles_last_section[0] == "Success") or (cycle == max_num_cycles-1):
-        print(f"section: {section}, cycle {cycle}, DONE!")
+        print(f"section: {section}, cycle {cycle}, DONE!, {finishing_angles_last_section[0]}")
         arm.save_learned_to_file(recalculate_rewards=False)
-    fig, ax = plt.subplots(figsize=(10, 10))
-    ax.set_yscale('log')
-    ax.plot(episode_lengths)
+        break
+    #fig, ax = plt.subplots(figsize=(10, 10))
+    #ax.set_yscale('log')
+    #ax.plot(episode_lengths)
 
-    ax.set_xlabel('Episodes')
-    ax.set_ylabel('Episode length')
+    #ax.set_xlabel('Episodes')
+    #ax.set_ylabel('Episode length')
 
-    print(f"average length of the last 100 episodes: {np.average(episode_lengths[-100:len(episode_lengths)])}")
+    #print(f"average length of the last 100 episodes: {np.average(episode_lengths[-100:len(episode_lengths)])}")
     #print(f"last 10 episode lengths: {episode_lengths[-10:len(episode_lengths)]}")
     #plt.savefig(f'{algo}_plot.png')
     #plt.show()
 
-arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
+arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True, max_steps=2000)
 
 #arm.load_learned_from_file()
 #arm.save_learned_to_file()
