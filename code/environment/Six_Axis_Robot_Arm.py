@@ -123,7 +123,6 @@ class Six_Axis_Robot_Arm:
         # rewards
         self.reward_out_of_bounds = -500
         self.reward_going_backwards = -250
-        self.reward_step = -1
         self.reward_win = 100
         self.reward_section_win = 0
 

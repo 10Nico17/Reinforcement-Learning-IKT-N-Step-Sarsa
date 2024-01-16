@@ -209,7 +209,7 @@ gamma = 0.99
 epsilon = 0.1
 
 # Learn section and save to file
-arm = bot.Six_Axis_Robot_Arm(voxel_volume=2, checkpoints=True, num_checkpoints=64)
+arm = bot.Six_Axis_Robot_Arm(voxel_volume=2, checkpoints=True, num_checkpoints=256)
 
 arm.load_learned_from_file()
 
