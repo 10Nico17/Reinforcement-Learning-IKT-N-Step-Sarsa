@@ -432,8 +432,8 @@ def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=64, use_le
 starting_time = time.time()
 
 # Number of episodes per section
-num_episodes = 5000
-alpha = 0.1
+num_episodes = 5
+alpha = 0.02
 gamma = 0.99
 epsilon = 0.1
 
@@ -450,7 +450,7 @@ arm.load_learned_from_file()
 arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
 
 episode_lengths = []
-max_num_cycles = 5
+max_num_cycles = 100
 section = 0
 
 for cycle in range(max_num_cycles):
@@ -477,7 +477,7 @@ for cycle in range(max_num_cycles):
     print(f"average length of the last 100 episodes: {np.average(episode_lengths[-100:len(episode_lengths)])}")
     #print(f"last 10 episode lengths: {episode_lengths[-10:len(episode_lengths)]}")
     #plt.savefig(f'{algo}_plot.png')
-    plt.show()
+    #plt.show()
 
 arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
 
