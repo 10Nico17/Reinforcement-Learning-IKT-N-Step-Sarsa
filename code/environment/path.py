@@ -58,7 +58,7 @@ class Path:
         elements = []
         winning_voxels = []
         rewards = []
-        current_reward = -1
+        current_reward = -100
         elements.append((self.helix_start, current_reward))
         # generate a reward system that gets lower the closer we get to the finish
         # starting reward
@@ -97,7 +97,7 @@ class Path:
                             #elements.append(((x + k, y + j, z + l), current_reward-distance))
                             elements.append(((x + k, y + j, z + l), current_reward))
 
-            current_reward += 1 / self.resolution
+            current_reward += 100 / self.resolution
             #current_reward = -1
             #if ((((i/self.resolution) + 0.01) * 100) % 5) == 0:
             #    print(f"Process: {int((i/self.resolution)*100)}%\r", end='')
@@ -113,15 +113,17 @@ class Path:
 
         seen = set()
 
+        #print(elements)
         for i, element in enumerate(elements):
             coords, reward = element
             #print(f"\rProcess: {int((i/len(elements))*100)}%\r", end='')
             if coords not in seen:
                 # Dont add if we did not generate voxels at start of helix and the voxel is at the start of the helix
                 # This mitigates a bug, where it will always generate a voxel at the start of the helix
-                if self.start_of_voxels is not 0 and coords is not self.helix_start:
+                if coords is not self.helix_start:
                     seen.add(coords)
                     helix.append(coords)
+                    #print("Appening helix: {coords}")
                     if coords in winning_voxels:
                         rewards.append(0)
                     else:
@@ -134,6 +136,7 @@ class Path:
         #    if(coords in winning_voxels):
         #        print(f"In winning voxels!")
 
+        #print(f"voxels: {helix}")
         #print(f"winning voxels: {winning_voxels}")
 
         return helix, winning_voxels, rewards

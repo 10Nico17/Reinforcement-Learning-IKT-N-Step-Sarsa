@@ -25,7 +25,8 @@ class Three_Axis_Robot_Arm:
                  section_length=1, helix_section=0,
                  voxels=None, winning_voxels=None,
                  voxel_volume=1, stitch_section=1,
-                 use_norm_rewarding=True) -> None:
+                 use_norm_rewarding=True,
+                 checkpoints=False, num_checkpoints=64) -> None:
         """Initialize robot arm.
 
         :param initial_angles: Tuple with the initial angles of the robot joints in degrees
@@ -38,12 +39,8 @@ class Three_Axis_Robot_Arm:
         """
         # Create path for the robot
         #path = Path(helix_start=starting_pos, max_distance=2)
-        voxel_volume = 1
         self.helix_section = helix_section
-        if(helix_section != int((1/section_length))-1):
-            self.section_length = section_length*1.3
-        else:
-            self.section_length = section_length
+        self.section_length = section_length*1.016
         helix_section = helix_section * section_length
         # make the section a little longer so each section overlaps a litle
         path = Path(helix_start=starting_pos, max_distance=voxel_volume,
@@ -80,6 +77,7 @@ class Three_Axis_Robot_Arm:
         self.starting_angles = self.rob.ikine((self.path[0][0], self.path[1][0], self.path[2][0]))
         # do mod 2pi to starting angles to not get crazy large angles
         self.starting_angles = np.array([angle % (2*np.pi) for angle in self.starting_angles])
+        self.initial_angles = self.starting_angles
         # Create arm
         self.rob = Arm(links, self.starting_angles, '1-link')
 
@@ -164,8 +162,11 @@ class Three_Axis_Robot_Arm:
         self.min_reward = -self.num_sections+self.helix_section
         self.max_reward = -self.num_sections+self.helix_section+0.6
 
-        self.reward_out_of_bounds = -2
+        self.reward_out_of_bounds = -500
+        self.reward_going_backwards = -250
         self.reward_step = -1
+        self.reward_win = 100
+        self.reward_section_win = 0
 
         # Create Q
         self.Q = -np.random.rand(amount_voxels, total_amount_actions)
@@ -176,6 +177,12 @@ class Three_Axis_Robot_Arm:
 
         # Calculate the rewards based on the position of the robot in each voxel
         #self.__calc_rewards()
+
+        self.current_checkpoint = 0
+        self.num_checkpoints = num_checkpoints
+        self.new_checkpoint = False
+        # Remember last reward to punish going backwards
+        self.last_reward = -1000000
 
     def __deg_to_rad(self, deg: float) -> float:
         """Convert degree to radiants.
@@ -310,7 +317,20 @@ class Three_Axis_Robot_Arm:
         #print(f"Get reward. Error = {error}")
         #print(f"")
         #return error
-        return self.reward_step
+        # rewards go from -100 to 0.
+        reward = self.rewards[self.voxels_index_dict[self.current_voxel]]
+        if self.last_reward > reward:
+            reward = self.reward_going_backwards
+
+        if reward >= -100+((100*self.current_checkpoint)/self.num_checkpoints):
+            self.current_checkpoint += 1
+            self.starting_angles = self.get_joint_angles_rad()
+            #print(f"New checkpoint!: {self.current_checkpoint}, new starting_angles: {self.starting_angles}, initital_starting_angles: {self.initial_angles}")
+            if self.current_checkpoint != 1:
+                reward = reward + 2
+            #    self.show(draw_path=True, draw_voxels=True, zoom_path=True)
+        
+        return reward
 
     def __calc_rewards(self) -> None:
         # Move robot to every voxel and calculate the reward for the given voxel
@@ -340,7 +360,7 @@ class Three_Axis_Robot_Arm:
     def get_joint_angles_rad(self) -> (float, float, float):
         """Return current joint angles.
 
-        :return: Tuple with the current angles of the robot joints in degrees
+        :return: Tuple with the current angles of the robot joints in radiants
         :rtype: (float, float, float)
 
         :return: None
@@ -388,6 +408,9 @@ class Three_Axis_Robot_Arm:
         self.rob.reset(save=False)
         self.out_of_bounds_counter = 0
         self.current_voxel = self.__get_tcp_voxel_position()
+        self.current_checkpoint = 0
+        self.new_checkpoint = False
+        self.starting_angles = self.initial_angles
         #print(f"  self.current_voxel: {self.current_voxel}")
 
     def get_random_action(self) -> ((float, float, float), int):
