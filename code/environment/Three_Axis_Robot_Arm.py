@@ -38,7 +38,6 @@ class Three_Axis_Robot_Arm:
         """
         # Create path for the robot
         #path = Path(helix_start=starting_pos, max_distance=2)
-        voxel_volume = 1
         self.helix_section = helix_section
         if(helix_section != int((1/section_length))-1):
             self.section_length = section_length*1.3
@@ -164,7 +163,7 @@ class Three_Axis_Robot_Arm:
         self.min_reward = -self.num_sections+self.helix_section
         self.max_reward = -self.num_sections+self.helix_section+0.6
 
-        self.reward_out_of_bounds = -2
+        self.reward_out_of_bounds = -5
         self.reward_step = -1
 
         # Create Q
@@ -310,7 +309,7 @@ class Three_Axis_Robot_Arm:
         #print(f"Get reward. Error = {error}")
         #print(f"")
         #return error
-        return self.reward_step
+        return self.rewards[self.voxels_index_dict[self.current_voxel]]
 
     def __calc_rewards(self) -> None:
         # Move robot to every voxel and calculate the reward for the given voxel
@@ -656,16 +655,16 @@ class Three_Axis_Robot_Arm:
                 x.append(voxel[0])
                 y.append(voxel[1])
                 z.append(voxel[2])
-            ax.scatter(x, y, z, marker=".", s=2, cmap=plt.get_cmap('hot'), c=self.rewards)
+            ax.scatter(x, y, z, marker=".", s=2, cmap=plt.get_cmap('winter'), c=self.rewards)
 
-            x = []
-            y = []
-            z = []
-            for voxel in self.winning_voxels:
-                x.append(voxel[0])
-                y.append(voxel[1])
-                z.append(voxel[2])
-            ax.scatter(x, y, z, marker=".", s=2.5, color='red')
+            #x = []
+            #y = []
+            #z = []
+            #for voxel in self.winning_voxels:
+            #    x.append(voxel[0])
+            #    y.append(voxel[1])
+            #    z.append(voxel[2])
+            #ax.scatter(x, y, z, marker=".", s=2.5, color='red')
 
         plt.show()
 

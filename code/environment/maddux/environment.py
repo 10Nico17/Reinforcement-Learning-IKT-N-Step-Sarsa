@@ -246,9 +246,9 @@ class Environment:
             zmax = 10
 
         # And set our labels
-        ax.set_xlabel('X [m*(10^-4)]')
-        ax.set_ylabel('Y [m*(10^-4)]')
-        ax.set_zlabel('Z [m*(10^-4)]')
+        ax.set_xlabel('X [mm)]')
+        ax.set_ylabel('Y [mm]')
+        ax.set_zlabel('Z [mm]')
 
         for dynamic in self.dynamic_objects:
             # Plot Trajectory
