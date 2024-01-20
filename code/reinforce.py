@@ -439,15 +439,15 @@ num_sections=32
 section_start=0
 learn_sections=32
 
-#learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=True)
+learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=True)
 
 num_episodes = 20
 alpha = 0.01
 
 finishing_angles = None
 
-#for i in range(32):
-#    finishing_angles = learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True, stitch=False, stitch_section=1, max_num_cycles=100, use_norm_rewarding=False, draw_robot=False, starting_pos=finishing_angles, save_plot=False)
+for i in range(32):
+    finishing_angles = learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True, stitch=False, stitch_section=1, max_num_cycles=100, use_norm_rewarding=False, draw_robot=False, starting_pos=finishing_angles, save_plot=False)
 
 #finishing_angles = learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=False, stitch_section=1, max_num_cycles=5, use_norm_rewarding=False, draw_robot=True)
 #learn(1/num_sections, 1, num_episodes, alpha, gamma, epsilon, load=True, stitch=False, stitch_section=1, max_num_cycles=5, use_norm_rewarding=False, draw_robot=True, starting_pos=finishing_angles)
