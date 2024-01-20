@@ -694,16 +694,16 @@ class Three_Axis_Robot_Arm:
                 x.append(voxel[0])
                 y.append(voxel[1])
                 z.append(voxel[2])
-            ax.scatter(x, y, z, marker=".", s=2, cmap=plt.get_cmap('winter'), c=self.rewards)
+            ax.scatter(x, y, z, marker=".", s=2, c='aqua')
 
-            x = []
-            y = []
-            z = []
-            for voxel in self.winning_voxels[0]:
-                x.append(voxel[0])
-                y.append(voxel[1])
-                z.append(voxel[2])
-            ax.scatter(x, y, z, marker=".", s=2.5, color='red')
+            #x = []
+            #y = []
+            #z = []
+            #for voxel in self.winning_voxels[0]:
+            #    x.append(voxel[0])
+            #    y.append(voxel[1])
+            #    z.append(voxel[2])
+            #ax.scatter(x, y, z, marker=".", s=2.5, color='red')
 
         plt.show()
 
@@ -833,7 +833,7 @@ class Three_Axis_Robot_Arm:
 
     def stitch_from_file(self):
 
-        #print(f"stitching section: {self.section_to_stitch}")
+        print(f"stitching section: {self.section_to_stitch}")
 
         #print(f"len(slef.q): {len(self.Q[0])}, len(self.rewards): {len(self.rewards)}")
         """Stitch the next segment of voxels and qs from file to the robots Qs and Voxels
@@ -987,7 +987,7 @@ class Three_Axis_Robot_Arm:
         self.section_to_stitch += 1
 
 
-    def get_finishing_angles_rad(self, max_steps=1000) -> (str, (float, float, float)):
+    def get_finishing_angles_rad(self, max_steps=2000) -> (str, (float, float, float)):
         # Reset robot to starting position
         self.reset()
 
@@ -1008,15 +1008,15 @@ class Three_Axis_Robot_Arm:
             self.q_path[1].append(tcp[1])
             self.q_path[2].append(tcp[2])
             # Check for boundaries, check for win, check if max steps are reached max steps
-            in_voxels = self.__check_in_voxels() is True
-            in_win = self.__check_win() is True
+            in_voxels = self.__check_in_voxels()
+            in_win = self.__check_win()
             if (not in_voxels) or (in_win) or (i > max_steps):
                 if not in_voxels: return_string = "Out of bounds"
                 if i > max_steps: return_string = "Infinite Loop"
+                done = True
                 if in_win is True:
-                    if len(self.winning_voxels)-1 == self.move_along_q_in_section:
-                        done = True
-                    else:
+                    if len(self.winning_voxels)-1 != self.move_along_q_in_section:
+                        done = False
                         self.move_along_q_in_section += 1
             i += 1
 

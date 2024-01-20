@@ -30,7 +30,7 @@ class Path:
         elif self.helix_scale == "cm":
             self.helix_factor = 1
         else:
-            self.helix_factor = 10
+            self.helix_factor = 15
 
     def x(self, t: float):
         return - 3 * self.helix_factor * cos((4 / self.par_space)*pi*t) + 3 * self.helix_factor + self.helix_start[0]

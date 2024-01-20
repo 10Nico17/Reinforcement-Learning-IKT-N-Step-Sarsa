@@ -446,17 +446,14 @@ alpha = 0.01
 
 finishing_angles = None
 
-for i in range(32):
+for i in range(num_sections):
     finishing_angles = learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True, stitch=False, stitch_section=1, max_num_cycles=100, use_norm_rewarding=False, draw_robot=False, starting_pos=finishing_angles, save_plot=False)
-
-#finishing_angles = learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=False, stitch_section=1, max_num_cycles=5, use_norm_rewarding=False, draw_robot=True)
-#learn(1/num_sections, 1, num_episodes, alpha, gamma, epsilon, load=True, stitch=False, stitch_section=1, max_num_cycles=5, use_norm_rewarding=False, draw_robot=True, starting_pos=finishing_angles)
 
 total_time = time.time()-starting_time
 
 arm = bot.Three_Axis_Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=2, stitch_section=1, use_norm_rewarding=False)
 arm.load_learned_from_file()
-for i in range(32):
+for i in range(num_sections):
     arm.stitch_from_file()
 
 print(f"MSE: {arm.calc_mse(support_points=1500)}")
