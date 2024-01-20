@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import sys
 import time
 sys.path.append('./environment')
-#import Six_Axis_Robot_Arm as bot
-import Three_Axis_Robot_Arm as bot
+import Six_Axis_Robot_Arm as bot
+#import Three_Axis_Robot_Arm as bot
 import gc
 import multiprocessing
 import threading
@@ -244,13 +244,11 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
     if verbosity_level >= 1: print(f"")
     return episode_lengths, algo, alpha
 
-num_sections=32
-section_start=0
-learn_sections=8
-
-def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queue=None, load=False, stitch=False, max_num_cycles=5, stitch_section=1, use_norm_rewarding=True, draw_robot=False):
+def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queue=None, load=False,
+          stitch=False, max_num_cycles=5, stitch_section=1, use_norm_rewarding=False, draw_robot=False,
+          starting_pos=None, save_plot=True):
     # Learn section and save to file
-    arm = bot.Three_Axis_Robot_Arm(section_length=section_length, helix_section=section, voxel_volume=2, stitch_section=1, use_norm_rewarding=use_norm_rewarding)
+    arm = bot.Six_Axis_Robot_Arm(section_length=section_length, helix_section=section, voxel_volume=2, stitch_section=1, use_norm_rewarding=use_norm_rewarding)
 
     if load is True:
         arm.load_learned_from_file()
@@ -263,7 +261,10 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
         else:
             arm.stitch_from_file()
 
-    if queue is None:
+    if starting_pos is not None:
+        arm.set_starting_angles_rad(starting_pos)
+
+    if queue is None and draw_robot is True:
         arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
     #if queue is None:
@@ -278,9 +279,9 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
         else:
             print(f"section: {section}, cycle {cycle}")
             sarsa_verbosity_level = 1
-        #queue.put(f"\n\n********************\nLearning Section {section}\n********************\n\n")
         eps, _, alpha = n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon, verbosity_level=sarsa_verbosity_level, queue=queue, section=section, episode_start=(cycle*min_num_episodes))
         episode_lengths = episode_lengths + eps
+        #queue.put(f"\n\n********************\nLearning Section {section}\n********************\n\n")
         #print(n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon, verbosity_level=sarsa_verbosity_level, queue=queue, section=section, episode_start=(cycle*min_num_episodes))[0])
         finishing_angles_last_section = arm.get_finishing_angles_rad()
         #print(f"Done: finishing_angles_section_0: {finishing_angles_last_section}")
@@ -297,23 +298,28 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
         arm.save_learned_to_file(recalculate_rewards=False)
     else:
         arm.save_learned_to_file(recalculate_rewards=False)
-    fig, ax = plt.subplots(figsize=(10, 10))
-    #ax.set_yscale('log')
-    ax.plot(episode_lengths[0:150])
 
-    ax.set_xlabel('Episodes')
-    ax.set_ylabel('Episode length')
+    if save_plot is True:
+        fig, ax = plt.subplots(figsize=(10, 10))
+        #ax.set_yscale('log')
+        ax.plot(episode_lengths[0:150])
 
-    print(f"average length of the last 100 episodes: {np.average(episode_lengths[-100:len(episode_lengths)])}")
-    print(f"last 10 episode lengths: {episode_lengths[-10:len(episode_lengths)]}")
-    if stitch_section is True:
-        plt.savefig(f'section_{section}_to_{stitch_section}_plot.png')
-    else:
-        plt.savefig(f'section_{section}_plot.png')
+        ax.set_xlabel('Episodes')
+        ax.set_ylabel('Episode length')
+        if stitch_section is True:
+            plt.savefig(f'section_{section}_to_{stitch_section}_plot.png')
+        else:
+            plt.savefig(f'section_{section}_plot.png')
+
+    if queue is None and len(episode_lengths) > 0:
+        print(f"average length of the last 100 episodes: {np.average(episode_lengths[-100:len(episode_lengths)])}")
+        print(f"last 10 episode lengths: {episode_lengths[-10:len(episode_lengths)]}")
     #plt.show()
     # Wait a moment so all queue data can be processed and process can return
     if draw_robot is True:
         arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
+
+    return finishing_angles_last_section[1]
 
 def print_sections(num_sections):
     print("\n         ", end="")
@@ -379,67 +385,39 @@ def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=64, use_le
     stitch = False
     use_norm_rewarding=True
     show_robot = False
-    max_num_cycles=5
+    max_num_cycles=10
 
     section_length = 1/num_processes
 
     # Create and start processes
-    # TODO: assign sections depending on total sections
     num_processes = total_sections
 
-    concatenate_every = 1
+    for i in range(section_start, section_start+learn_sections):
+        p = multiprocessing.Process(target=learn, args=(section_length, i, num_episodes, alpha, gamma, epsilon, queue, use_learned, False, max_num_cycles, 1, False, False))
+        p.start()
+        processes.append(p)
+        time.sleep(0.2)
 
-    while(concatenate_every <= learn_sections):
-
-        #print(f"concatenate_every={concatenate_every}, learn_sections={learn_sections}")
-
-        for i in range(0, learn_sections, concatenate_every):
-            stitch_section = i + int(concatenate_every / 2)
-            p = multiprocessing.Process(target=learn, args=(section_length, i, num_episodes, alpha, gamma, epsilon, queue, use_learned, stitch, max_num_cycles, stitch_section, use_norm_rewarding, show_robot))
-            p.start()
-            processes.append(p)
-            time.sleep(0.2)
-
-        # Wait for all processes to finish
-        all_processes_done = False
-        while all_processes_done == False:
-            all_processes_done = True
-            delete_processes = []
-            for p in processes:
-                if not p.is_alive():
-                    #print(f"\nDeleting process: {p}\n")
-                    delete_processes.append(p)
-                else:
-                    all_processes_done = False
-            processes = [p for p in processes if p not in delete_processes]
-
-        processes = []
-
-        return
-
-        queue.put((int(learn_sections/2), 0, "next"))
-
-        use_learned = True
-        use_norm_rewarding = False
-        stitch = True
-        if concatenate_every == learn_sections/2:
-            show_robot = True
-        concatenate_every *= 2
-
-    #monitor_thread.terminate()
-    arm = bot.Three_Axis_Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=2, stitch_section=None)
-    arm.load_learned_from_file()
-    arm.animate_move_along_q_values(draw_path=True, draw_voxels=False, zoom_path=True)
-
+    # Wait for all processes to finish
+    all_processes_done = False
+    while all_processes_done == False:
+        all_processes_done = True
+        delete_processes = []
+        for p in processes:
+            if not p.is_alive():
+                #print(f"\nDeleting process: {p}\n")
+                delete_processes.append(p)
+            else:
+                all_processes_done = False
+        processes = [p for p in processes if p not in delete_processes]
 
 starting_time = time.time()
 
 # Number of episodes per section
-num_episodes = 1000
+num_episodes = 10000
 alpha = 0.1
 gamma = 0.99
 epsilon = 0.1
-
 
 # Adjust print options
 np.set_printoptions(threshold=np.inf)
@@ -451,34 +429,35 @@ np.set_printoptions(threshold=np.inf)
 #arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
 #arm.stitch_from_file()
 
-#learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=False)
-
 # Learn section and save to file
 
 #learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, max_num_cycles=5)
 
 
 #learn(1/num_sections, 1, num_episodes, alpha, gamma, epsilon, load=False, max_num_cycles=5, use_norm_rewarding=False)
+num_sections=32
+section_start=0
+learn_sections=32
 
-learn(0.99, 0, num_episodes, alpha, gamma, epsilon, load=False, stitch=False, stitch_section=1, max_num_cycles=2, use_norm_rewarding=False)
-#learn(1/num_sections, 1, num_episodes, alpha, gamma, epsilon, load=False, stitch=False, stitch_section=2, max_num_cycles=2, use_norm_rewarding=False)
-#learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=1, max_num_cycles=1, use_norm_rewarding=False)
-#learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=4, max_num_cycles=4, use_norm_rewarding=False)
-#learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=5, max_num_cycles=4, use_norm_rewarding=False)
-#learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=6, max_num_cycles=4, use_norm_rewarding=False)
-#learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=7, max_num_cycles=4, use_norm_rewarding=False)
+learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=True)#
 
-#for i in range(31):
+num_episodes = 20
+alpha = 0.01
 
-#learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=3, max_num_cycles=3)
+finishing_angles = None
 
-#learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=False)
-#learn(1/num_sections, 1, num_episodes, alpha, gamma, epsilon, load=False)
-#alpha = 0.0001
-#learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=1)
-#learn(1/num_sections, 2, num_episodes, alpha, gamma, epsilon, load=True)
-#learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=True, stitch_section=2)
+for i in range(32):
+    finishing_angles = learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True, stitch=False, stitch_section=1, max_num_cycles=100, use_norm_rewarding=False, draw_robot=False, starting_pos=finishing_angles, save_plot=False)
+
+#finishing_angles = learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=False, stitch_section=1, max_num_cycles=5, use_norm_rewarding=False, draw_robot=True)
+#learn(1/num_sections, 1, num_episodes, alpha, gamma, epsilon, load=True, stitch=False, stitch_section=1, max_num_cycles=5, use_norm_rewarding=False, draw_robot=True, starting_pos=finishing_angles)
 
 total_time = time.time()-starting_time
+
+arm = bot.Six_Axis_Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=2, stitch_section=1, use_norm_rewarding=False)
+arm.load_learned_from_file()
+for i in range(32):
+    arm.stitch_from_file()
+arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
 
 print(f"Total time: {total_time} seconds")
