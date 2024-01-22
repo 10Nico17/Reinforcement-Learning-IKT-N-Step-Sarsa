@@ -39,6 +39,9 @@ class Robot_Arm:
         self.winning_voxels = [None]
         self.Q = [None]
 
+        # save number of axis
+        self.num_axis = num_axis
+
         self.helix_section = helix_section
 
         if(helix_section != int((1/section_length))-1):
@@ -698,27 +701,27 @@ class Robot_Arm:
 
     def save_learned_to_file(self):
         # Write Qs to file
-        np.save(f"Q_values_section_{self.helix_section}.npy", self.Q[0])
+        np.save(f"learned_values_{self.num_axis}_axis/Q_values_section_{self.helix_section}.npy", self.Q[0])
         # Write Winning Voxels to file
-        np.save(f"Winning_voxels_{self.helix_section}.npy", self.winning_voxels[0])
+        np.save(f"learned_values_{self.num_axis}_axis/Winning_voxels_{self.helix_section}.npy", self.winning_voxels[0])
         # Write index dict to file
-        with open(f"Index_dict_{self.helix_section}.json", 'w') as json_file:
+        with open(f"learned_values_{self.num_axis}_axis/Index_dict_{self.helix_section}.json", 'w') as json_file:
             json_file.write(ujson.dumps(self.voxels_index_dict[0]))
         # Write rewards used to file
-        np.save(f"Rewards_{self.helix_section}.npy", self.rewards)
+        np.save(f"learned_values_{self.num_axis}_axis/Rewards_{self.helix_section}.npy", self.rewards)
 
 
     def load_learned_from_file(self):
         # Load Qs from file
         try:
-            self.Q[0] = np.load(f"Q_values_section_{self.helix_section}.npy")
+            self.Q[0] = np.load(f"learned_values_{self.num_axis}_axis/Q_values_section_{self.helix_section}.npy")
         except:
             #print("No file, not loading")
             return
         # Load Winning Voxels to file
         self.winning_voxels[0] = []
         try:
-            loaded_winning_voxels = np.load(f"Winning_voxels_{self.helix_section}.npy")
+            loaded_winning_voxels = np.load(f"learned_values_{self.num_axis}_axis/Winning_voxels_{self.helix_section}.npy")
         except:
             #print("No file, not loading")
             return
@@ -727,7 +730,7 @@ class Robot_Arm:
             self.winning_voxels[0].append(tuple(winning_voxel_arr))
         # Load index dict to file
         try:
-            with open(f"Index_dict_{self.helix_section}.json", 'r') as json_file:
+            with open(f"learned_values_{self.num_axis}_axis/Index_dict_{self.helix_section}.json", 'r') as json_file:
                 loaded_dict = ujson.load(json_file)
         except:
             #print("No file, not loading")
@@ -736,7 +739,7 @@ class Robot_Arm:
         self.voxels_index_dict[0] = {eval(key): value for key, value in loaded_dict.items()}
         # Load Rewards from file
         try:
-            self.rewards = np.load(f"Rewards_{self.helix_section}.npy")
+            self.rewards = np.load(f"learned_values_{self.num_axis}_axis/Rewards_{self.helix_section}.npy")
         except:
             #print("No file, not loading")
             return
@@ -749,14 +752,14 @@ class Robot_Arm:
         #print("Loading Qs and Voxels from file and stitching them to the robots Qs and voxels")
         # Load Qs from file
         try:
-            additional_Qs = np.load(f"Q_values_section_{self.section_to_stitch}.npy")
+            additional_Qs = np.load(f"learned_values_{self.num_axis}_axis/Q_values_section_{self.section_to_stitch}.npy")
         except:
             print("No file, not loading")
             return
         # Load Winning Voxels from file and overwrite the current winning voxels
         new_winning_voxels = []
         try:
-            loaded_winning_voxels = np.load(f"Winning_voxels_{self.section_to_stitch}.npy")
+            loaded_winning_voxels = np.load(f"learned_values_{self.num_axis}_axis/Winning_voxels_{self.section_to_stitch}.npy")
         except:
             print("No file, not loading")
             return
@@ -765,7 +768,7 @@ class Robot_Arm:
             new_winning_voxels.append(tuple(winning_voxel_arr))
         # Load index dict to file
         try:
-            with open(f"Index_dict_{self.section_to_stitch}.json", 'r') as json_file:
+            with open(f"learned_values_{self.num_axis}_axis/Index_dict_{self.section_to_stitch}.json", 'r') as json_file:
                 loaded_dict = ujson.load(json_file)
         except:
             print("No file, not loading")
@@ -774,7 +777,7 @@ class Robot_Arm:
         additional_voxels_index_dict = {eval(key): value for key, value in loaded_dict.items()}
         # Load Rewards from file
         try:
-            additional_rewards = np.load(f"Rewards_{self.section_to_stitch}.npy")
+            additional_rewards = np.load(f"learned_values_{self.num_axis}_axis/Rewards_{self.section_to_stitch}.npy")
         except:
             print("No file, not loading")
             return

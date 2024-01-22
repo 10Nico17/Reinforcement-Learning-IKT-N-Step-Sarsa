@@ -153,15 +153,15 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
             G=0
 
             if (i % 10000 == 0) and verbosity_level >= 1:
-                print(f"Current_iteration {i} in episode {episode}, current_pos {new_pos}, Out of bounds: {robot.out_of_bounds_counter}")
-                print(f"Move / out of bound ratio: {robot.out_of_bounds_counter/i}, best reward: {best_reward}")
+                print(f"    Current_iteration {i} in episode {episode}, current_pos {new_pos}, Out of bounds: {robot.out_of_bounds_counter}")
+                print(f"    Move / out of bound ratio: {robot.out_of_bounds_counter/i}, best reward: {best_reward}")
                 #print(f"Percentage of track done in furthest move: {round((best_reward + 1)*100, 3)}%")
-                print(f"alpha = {alpha} gamma = {gamma} epsilon = {epsilon}")
+                print(f"    alpha = {alpha} gamma = {gamma} epsilon = {epsilon}")
                 #robot.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
         end_time = time.time()
         episode_lengths.append(i)
-        if verbosity_level >= 1: print(f"Episode {episode} ended with length {i}. Time for eposiode: {end_time-start_time} s.  Alpha = {alpha}                            ",
+        if verbosity_level >= 1: print(f"    Episode {episode} ended with length {i}. Time for eposiode: {end_time-start_time} s.  Alpha = {alpha}                            ",
                                        end='\r')
         algo = 'sarsa_n_step'
 
@@ -205,17 +205,12 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
             sarsa_verbosity_level = 1
         eps, _, alpha = n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon, verbosity_level=sarsa_verbosity_level, queue=queue, section=section, episode_start=(cycle*min_num_episodes))
         episode_lengths = episode_lengths + eps
-        #queue.put(f"\n\n********************\nLearning Section {section}\n********************\n\n")
-        #print(n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon, verbosity_level=sarsa_verbosity_level, queue=queue, section=section, episode_start=(cycle*min_num_episodes))[0])
         finishing_angles_last_section = arm.get_finishing_angles_rad()
-        #print(f"Done: finishing_angles_section_0: {finishing_angles_last_section}")
-        #if queue is None:
-        #    arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
         if (finishing_angles_last_section[0] == "Success") or (cycle == max_num_cycles-1):
             if queue is not None:
                 queue.put((section, cycle, "done"))
             else:
-                print(f"section: {section}, cycle {cycle}, DONE!")
+                print(f"    section: {section}, cycle {cycle}, DONE!")
             break
 
     if stitch is False:
@@ -230,18 +225,17 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
 
         ax.set_xlabel('Episodes')
         ax.set_ylabel('Episode length')
-        if stitch_section is True:
-            plt.savefig(f'section_{section}_to_{stitch_section}_plot.png')
-        else:
-            plt.savefig(f'section_{section}_plot.png')
+        plt.savefig(f'learned_values_{num_axis}_axis/section_{section}_plot.png')
 
     if queue is None and len(episode_lengths) > 0:
-        print(f"average length of the last 100 episodes: {np.average(episode_lengths[-100:len(episode_lengths)])}")
-        print(f"last 10 episode lengths: {episode_lengths[-10:len(episode_lengths)]}")
+        print(f"    average length of the last 100 episodes: {np.average(episode_lengths[-100:len(episode_lengths)])}")
+        print(f"    last 10 episode lengths: {episode_lengths[-10:len(episode_lengths)]}\n")
     #plt.show()
-    # Wait a moment so all queue data can be processed and process can return
     if draw_robot is True:
         arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
+
+    # Wait a moment so all queue data can be processed and process can return
+    time.sleep(2)
 
     return finishing_angles_last_section[1]
 
@@ -259,8 +253,6 @@ def print_sections(num_sections):
     print("\nCycle  |\nEpisode|", end="\r")
 
 def monitor_queue(total_num_sections, queue):
-    iteration = 0
-    print(f"Iteration: {iteration}")
     print_sections(total_num_sections)
     while True:
         if not queue.empty():
@@ -328,11 +320,13 @@ def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=64, use_le
         delete_processes = []
         for p in processes:
             if not p.is_alive():
-                #print(f"\nDeleting process: {p}\n")
                 delete_processes.append(p)
             else:
                 all_processes_done = False
         processes = [p for p in processes if p not in delete_processes]
+
+    # Kill monitoring thread
+    monitor_thread.join()
 
 
 starting_time = time.time()
@@ -348,17 +342,19 @@ num_axis = 3
 
 num_sections=32
 section_start=0
-learn_sections=32
+learn_sections=4
 
 #learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=False, stitch_section=1, max_num_cycles=100, use_norm_rewarding=False, draw_robot=True, starting_pos=None, save_plot=False)
 
 learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=True)
 
+print("\n\n    Parallel learning done, now going sequentially through each section and stitching them together.\n")
+
 num_episodes = 20
 alpha = 0.01
 finishing_angles = None
 
-for i in range(num_sections):
+for i in range(learn_sections):
     finishing_angles = learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True, stitch=False, stitch_section=1, max_num_cycles=100, use_norm_rewarding=False, draw_robot=False, starting_pos=finishing_angles, save_plot=False)
 
 total_time = time.time()-starting_time
@@ -366,10 +362,10 @@ total_time = time.time()-starting_time
 arm = bot.Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=2, num_axis=num_axis)
 arm.load_learned_from_file()
 
-for i in range(num_sections):
+for i in range(learn_sections-1):
     arm.stitch_from_file()
 
-print(f"MSE: {arm.calc_mse(support_points=1500)}")
-arm.animate_move_along_q_values(draw_path=True, draw_voxels=False, zoom_path=True)
+print(f"MSE: {arm.calc_mse(support_points=1500)} (only correct when learning the whole helix)")
+arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
 arm.show(draw_path=True, draw_voxels=False, zoom_path=True, draw_q_path=True)
 print(f"Total time: {total_time} seconds")
