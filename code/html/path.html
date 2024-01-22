@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>path API documentation</title>
+<meta name="description" content="Helix Path Generation for Robotic Navigation …" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>path</code></h1>
+</header>
+<section id="section-intro">
+<p>Helix Path Generation for Robotic Navigation.</p>
+<p>This module provides the functionality to create and manage a helix-shaped path, typically used
+in robotic navigation and trajectory planning. The primary class, Path, generates a three-dimensional
+helix path, calculates the coordinates of voxels along this path, and determines winning voxels based
+on their proximity to the path. It supports various configurations of the helix, such as the start
+position, voxel size, and the maximum distance for voxel generation from the path.</p>
+<h2 id="classes">Classes</h2>
+<p>Path: Manages the generation and handling of a helix-shaped path.</p>
+<p>The Path class offers methods to calculate specific points on the helix given a parameter, generate
+voxels on or near the helix trajectory, and obtain the raw helix data. It is equipped to handle
+different scales of the helix and provides functionalities for calculating the nearest distance from
+a point to the helix and managing rewards associated with the voxels.</p>
+<p>Typical Usage Example:
+helix_path = Path(helix_start=(0, 0, 0), voxel_size=1, max_distance=1)
+helix_voxels, winning_voxels, rewards = helix_path.get_helix_voxels()
+helix_data = helix_path.get_helix_data()</p>
+<p>This module is particularly useful in robotic applications where path following and navigation in
+three-dimensional space are essential, such as in robotic arms or autonomous drones navigating through
+prescribed paths.</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;Helix Path Generation for Robotic Navigation.
+
+This module provides the functionality to create and manage a helix-shaped path, typically used
+in robotic navigation and trajectory planning. The primary class, Path, generates a three-dimensional
+helix path, calculates the coordinates of voxels along this path, and determines winning voxels based
+on their proximity to the path. It supports various configurations of the helix, such as the start
+position, voxel size, and the maximum distance for voxel generation from the path.
+
+Classes:
+    Path: Manages the generation and handling of a helix-shaped path.
+
+The Path class offers methods to calculate specific points on the helix given a parameter, generate
+voxels on or near the helix trajectory, and obtain the raw helix data. It is equipped to handle
+different scales of the helix and provides functionalities for calculating the nearest distance from
+a point to the helix and managing rewards associated with the voxels.
+
+Typical Usage Example:
+    helix_path = Path(helix_start=(0, 0, 0), voxel_size=1, max_distance=1)
+    helix_voxels, winning_voxels, rewards = helix_path.get_helix_voxels()
+    helix_data = helix_path.get_helix_data()
+
+This module is particularly useful in robotic applications where path following and navigation in
+three-dimensional space are essential, such as in robotic arms or autonomous drones navigating through
+prescribed paths.
+&#34;&#34;&#34;
+import numpy as np
+from math import cos, sin, pi, sqrt
+
+class Path:
+    &#34;&#34;&#34;A class to represent and calculate the trajectory of a double helix-shaped path.
+
+    This class is designed to generate and manage a helix-shaped path, considering the helix&#39;s start point,
+    voxel size, and other helical parameters. It includes methods for calculating both the raw helix data
+    and the voxels that lie along the helix within a specified distance.
+
+    Attributes:
+        helix_start (tuple): Starting coordinates of the helix.
+        voxel_size (int): Size of each voxel in millimeters.
+        max_distance (int): Maximum distance from the helix path to consider for voxel generation.
+        par_space (int): Defines the parameter space of the helix.
+        percentage_of_helix (float): Percentage of the helix to generate voxels on.
+        start_of_voxels (float): Starting point on the helix for voxel generation.
+        resolution (int): Resolution of helix generation.
+        helix_scale (str): Scale of the helix (&#39;dmm&#39;, &#39;mm&#39;, or &#39;cm&#39;).
+        helix_factor (int): Factor to adjust the helix scale.
+
+    Methods:
+        x(t): Calculates the x-coordinate of the helix at a given parameter t.
+        y(t): Calculates the y-coordinate of the helix at a given parameter t.
+        z(t): Calculates the z-coordinate of the helix at a given parameter t.
+        __calculate_nearest_distance(voxel, path): Calculates the nearest distance from a voxel to a path.
+        get_helix_voxels(): Generates voxels on or near the helix trajectory.
+        get_helix_data(): Returns raw helix data (coordinates) without voxel processing.
+    &#34;&#34;&#34;
+    def __init__(self, helix_start: (int, int, int) = (0, 0, 0), voxel_size: int = 1,
+                 max_distance: int = 1, generate_percentage_of_helix=1, generate_start=0):
+        &#34;&#34;&#34;Initialize the path with helix parameters.
+
+        Args:
+            helix_start (tuple of int): Starting coordinates of the helix (x, y, z).
+            voxel_size (int): Size of each voxel in millimeters.
+            max_distance (int): Maximum distance from the helix path for voxel generation.
+            generate_percentage_of_helix (float): Percentage of the helix used for voxel generation.
+            generate_start (float): Starting point on the helix for voxel generation.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        # the helix expands in positive x, y and z direction
+        # the y-expansion has negative values after half a turn ...
+        self.helix_start = helix_start
+        # in mm
+        self.voxel_size = voxel_size
+        # in voxels
+        self.max_distance = max_distance
+        # defines the parameter space of the helix
+        self.par_space = 1
+        # defines the percentage of the helix the voxels get generated on
+        self.percentage_of_helix = generate_percentage_of_helix
+        # defines the start of the helix the voxels get generated on
+        self.start_of_voxels = generate_start
+
+        # defines resolution of helix generation
+        self.resolution = 300
+
+        self.helix_scale = &#34;dff&#34;
+
+        if self.helix_scale == &#34;dmm&#34;:
+            self.helix_factor = 100
+        elif self.helix_scale == &#34;mm&#34;:
+            self.helix_factor = 10
+        elif self.helix_scale == &#34;cm&#34;:
+            self.helix_factor = 1
+        else:
+            self.helix_factor = 15
+
+    def x(self, t: float):
+        &#34;&#34;&#34;Calculate the x-coordinate of a point on the helix path at a given parameter.
+
+        Args:
+            t (float): Parameter defining a point along the helix.
+
+        Returns:
+            float: x-coordinate of the helix at parameter t.
+        &#34;&#34;&#34;
+        return - 3 * self.helix_factor * cos((4 / self.par_space)*pi*t) + 3 * self.helix_factor + self.helix_start[0]
+
+    def y(self, t: float):
+        &#34;&#34;&#34;Calculate the y-coordinate of a point on the helix path at a given parameter.
+
+        Args:
+            t (float): Parameter defining a point along the helix.
+
+        Returns:
+            float: y-coordinate of the helix at parameter t.
+        &#34;&#34;&#34;
+        return 3 * self.helix_factor * sin((4 / self.par_space)*pi*t) + self.helix_start[1]
+
+    def z(self, t: float):
+        &#34;&#34;&#34;Calculate the z-coordinate of a point on the helix path at a given parameter.
+
+        Args:
+            t (float): Parameter defining a point along the helix.
+
+        Returns:
+            float: z-coordinate of the helix at parameter t.
+        &#34;&#34;&#34;
+        return t * 2 * self.helix_factor / self.par_space + self.helix_start[2]
+
+    def __calculate_nearest_distance(self, voxel, path):
+        &#34;&#34;&#34;Calculate the nearest distance from a given voxel to a specified path.
+
+        Args:
+            voxel (tuple of int): Coordinates of the voxel.
+            path (tuple of lists): Points representing the path.
+
+        Returns:
+            float: Minimum distance between the voxel and the path.
+        &#34;&#34;&#34;
+        min_distance = float(&#39;inf&#39;)
+        voxel_x, voxel_y, voxel_z = voxel
+
+        for x, y, z in zip(path[0], path[1], path[2]):
+            distance = sqrt((x - voxel_x)**2 + (y - voxel_y)**2 + (z - voxel_z)**2)
+            min_distance = min(min_distance, distance)
+
+        return min_distance
+
+    def get_helix_voxels(self):
+        &#34;&#34;&#34;Generate and return the voxels located on or near the helix path.
+
+        This method calculates the coordinates of the center of all voxels that are on the trajectory of the helix
+        or within a specified maximum distance, starting with the helix start voxel.
+
+        Returns:
+            tuple: List of voxel coordinates, winning voxels, and their associated rewards.
+        &#34;&#34;&#34;
+        #print(f&#34;Calculating Helix Voxels&#34;)
+        elements = []
+        winning_voxels = []
+        rewards = []
+        current_reward = -1
+        elements.append((self.helix_start, current_reward))
+        # generate a reward system that gets lower the closer we get to the finish
+        # starting reward
+        reward_win = 0.0
+
+        for i in range(self.resolution):
+            t = self.par_space / self.resolution * (i / (1/self.percentage_of_helix)) + self.start_of_voxels
+            # calculate the helix voxels
+            x = self.x(t)
+            y = self.y(t)
+            z = self.z(t)
+            # round to the next voxel (convert to int)
+            x = int(round(x / self.voxel_size))
+            y = int(round(y / self.voxel_size))
+            z = int(round(z / self.voxel_size))
+
+            path = self.get_helix_data()
+
+            # add adjacent voxels to the elements list
+            for k in range(-self.max_distance, self.max_distance + 1):
+                for j in range(-self.max_distance, self.max_distance + 1):
+                    for l in range(-self.max_distance, self.max_distance + 1):
+                        if (i &gt;= self.resolution-((self.max_distance+4))):
+                            # Winning voxel
+                            element = (x + k, y + j, z + l)
+                            winning_voxels.append(element)
+                            # Add Voxel with reward 0
+                            elements.append((element, 0))
+                        else:
+                            # Non winning voxel
+                            voxel = (x + k, y + j, z + l)
+                            # Add Voxel with reward
+                            elements.append(((x + k, y + j, z + l), current_reward))
+
+            current_reward += 1 / self.resolution
+
+        # Sort out dual winning voxels
+        winning_voxels = list(dict.fromkeys(winning_voxels))
+
+        helix = []
+        rewards = []
+
+        seen = set()
+
+        for i, element in enumerate(elements):
+            coords, reward = element
+            if coords not in seen:
+                # Dont add if we did not generate voxels at start of helix and the voxel is at the start of the helix
+                # This mitigates a bug, where it will always generate a voxel at the start of the helix
+                if self.start_of_voxels is not 0 and coords is not self.helix_start:
+                    seen.add(coords)
+                    helix.append(coords)
+                    if coords in winning_voxels:
+                        rewards.append(0)
+                    else:
+                        rewards.append(reward)
+
+        return helix, winning_voxels, rewards
+
+    def get_helix_data(self):
+        &#34;&#34;&#34;Retrieve the raw coordinate data of the helix path.
+
+        This method returns the raw data of the helix path in terms of x, y, and z coordinates without any voxel processing.
+
+        Returns:
+            tuple of lists: x, y, and z coordinates of the helix.
+        &#34;&#34;&#34;
+        x = []
+        y = []
+        z = []
+        for i in range(self.resolution):
+            t = self.par_space / self.resolution * i
+            # calculate the helix voxels
+            x.append(self.x(t))
+            y.append(self.y(t))
+            z.append(self.z(t))
+
+
+        return (x, y, z)</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="path.Path"><code class="flex name class">
+<span>class <span class="ident">Path</span></span>
+<span>(</span><span>helix_start: (<class 'int'>, <class 'int'>, <class 'int'>) = (0, 0, 0), voxel_size: int = 1, max_distance: int = 1, generate_percentage_of_helix=1, generate_start=0)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>A class to represent and calculate the trajectory of a double helix-shaped path.</p>
+<p>This class is designed to generate and manage a helix-shaped path, considering the helix's start point,
+voxel size, and other helical parameters. It includes methods for calculating both the raw helix data
+and the voxels that lie along the helix within a specified distance.</p>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>helix_start</code></strong> :&ensp;<code>tuple</code></dt>
+<dd>Starting coordinates of the helix.</dd>
+<dt><strong><code>voxel_size</code></strong> :&ensp;<code>int</code></dt>
+<dd>Size of each voxel in millimeters.</dd>
+<dt><strong><code>max_distance</code></strong> :&ensp;<code>int</code></dt>
+<dd>Maximum distance from the helix path to consider for voxel generation.</dd>
+<dt><strong><code>par_space</code></strong> :&ensp;<code>int</code></dt>
+<dd>Defines the parameter space of the helix.</dd>
+<dt><strong><code>percentage_of_helix</code></strong> :&ensp;<code>float</code></dt>
+<dd>Percentage of the helix to generate voxels on.</dd>
+<dt><strong><code>start_of_voxels</code></strong> :&ensp;<code>float</code></dt>
+<dd>Starting point on the helix for voxel generation.</dd>
+<dt><strong><code>resolution</code></strong> :&ensp;<code>int</code></dt>
+<dd>Resolution of helix generation.</dd>
+<dt><strong><code>helix_scale</code></strong> :&ensp;<code>str</code></dt>
+<dd>Scale of the helix ('dmm', 'mm', or 'cm').</dd>
+<dt><strong><code>helix_factor</code></strong> :&ensp;<code>int</code></dt>
+<dd>Factor to adjust the helix scale.</dd>
+</dl>
+<h2 id="methods">Methods</h2>
+<p>x(t): Calculates the x-coordinate of the helix at a given parameter t.
+y(t): Calculates the y-coordinate of the helix at a given parameter t.
+z(t): Calculates the z-coordinate of the helix at a given parameter t.
+__calculate_nearest_distance(voxel, path): Calculates the nearest distance from a voxel to a path.
+get_helix_voxels(): Generates voxels on or near the helix trajectory.
+get_helix_data(): Returns raw helix data (coordinates) without voxel processing.</p>
+<p>Initialize the path with helix parameters.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>helix_start</code></strong> :&ensp;<code>tuple</code> of <code>int</code></dt>
+<dd>Starting coordinates of the helix (x, y, z).</dd>
+<dt><strong><code>voxel_size</code></strong> :&ensp;<code>int</code></dt>
+<dd>Size of each voxel in millimeters.</dd>
+<dt><strong><code>max_distance</code></strong> :&ensp;<code>int</code></dt>
+<dd>Maximum distance from the helix path for voxel generation.</dd>
+<dt><strong><code>generate_percentage_of_helix</code></strong> :&ensp;<code>float</code></dt>
+<dd>Percentage of the helix used for voxel generation.</dd>
+<dt><strong><code>generate_start</code></strong> :&ensp;<code>float</code></dt>
+<dd>Starting point on the helix for voxel generation.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>None</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Path:
+    &#34;&#34;&#34;A class to represent and calculate the trajectory of a double helix-shaped path.
+
+    This class is designed to generate and manage a helix-shaped path, considering the helix&#39;s start point,
+    voxel size, and other helical parameters. It includes methods for calculating both the raw helix data
+    and the voxels that lie along the helix within a specified distance.
+
+    Attributes:
+        helix_start (tuple): Starting coordinates of the helix.
+        voxel_size (int): Size of each voxel in millimeters.
+        max_distance (int): Maximum distance from the helix path to consider for voxel generation.
+        par_space (int): Defines the parameter space of the helix.
+        percentage_of_helix (float): Percentage of the helix to generate voxels on.
+        start_of_voxels (float): Starting point on the helix for voxel generation.
+        resolution (int): Resolution of helix generation.
+        helix_scale (str): Scale of the helix (&#39;dmm&#39;, &#39;mm&#39;, or &#39;cm&#39;).
+        helix_factor (int): Factor to adjust the helix scale.
+
+    Methods:
+        x(t): Calculates the x-coordinate of the helix at a given parameter t.
+        y(t): Calculates the y-coordinate of the helix at a given parameter t.
+        z(t): Calculates the z-coordinate of the helix at a given parameter t.
+        __calculate_nearest_distance(voxel, path): Calculates the nearest distance from a voxel to a path.
+        get_helix_voxels(): Generates voxels on or near the helix trajectory.
+        get_helix_data(): Returns raw helix data (coordinates) without voxel processing.
+    &#34;&#34;&#34;
+    def __init__(self, helix_start: (int, int, int) = (0, 0, 0), voxel_size: int = 1,
+                 max_distance: int = 1, generate_percentage_of_helix=1, generate_start=0):
+        &#34;&#34;&#34;Initialize the path with helix parameters.
+
+        Args:
+            helix_start (tuple of int): Starting coordinates of the helix (x, y, z).
+            voxel_size (int): Size of each voxel in millimeters.
+            max_distance (int): Maximum distance from the helix path for voxel generation.
+            generate_percentage_of_helix (float): Percentage of the helix used for voxel generation.
+            generate_start (float): Starting point on the helix for voxel generation.
+
+        Returns:
+            None
+        &#34;&#34;&#34;
+        # the helix expands in positive x, y and z direction
+        # the y-expansion has negative values after half a turn ...
+        self.helix_start = helix_start
+        # in mm
+        self.voxel_size = voxel_size
+        # in voxels
+        self.max_distance = max_distance
+        # defines the parameter space of the helix
+        self.par_space = 1
+        # defines the percentage of the helix the voxels get generated on
+        self.percentage_of_helix = generate_percentage_of_helix
+        # defines the start of the helix the voxels get generated on
+        self.start_of_voxels = generate_start
+
+        # defines resolution of helix generation
+        self.resolution = 300
+
+        self.helix_scale = &#34;dff&#34;
+
+        if self.helix_scale == &#34;dmm&#34;:
+            self.helix_factor = 100
+        elif self.helix_scale == &#34;mm&#34;:
+            self.helix_factor = 10
+        elif self.helix_scale == &#34;cm&#34;:
+            self.helix_factor = 1
+        else:
+            self.helix_factor = 15
+
+    def x(self, t: float):
+        &#34;&#34;&#34;Calculate the x-coordinate of a point on the helix path at a given parameter.
+
+        Args:
+            t (float): Parameter defining a point along the helix.
+
+        Returns:
+            float: x-coordinate of the helix at parameter t.
+        &#34;&#34;&#34;
+        return - 3 * self.helix_factor * cos((4 / self.par_space)*pi*t) + 3 * self.helix_factor + self.helix_start[0]
+
+    def y(self, t: float):
+        &#34;&#34;&#34;Calculate the y-coordinate of a point on the helix path at a given parameter.
+
+        Args:
+            t (float): Parameter defining a point along the helix.
+
+        Returns:
+            float: y-coordinate of the helix at parameter t.
+        &#34;&#34;&#34;
+        return 3 * self.helix_factor * sin((4 / self.par_space)*pi*t) + self.helix_start[1]
+
+    def z(self, t: float):
+        &#34;&#34;&#34;Calculate the z-coordinate of a point on the helix path at a given parameter.
+
+        Args:
+            t (float): Parameter defining a point along the helix.
+
+        Returns:
+            float: z-coordinate of the helix at parameter t.
+        &#34;&#34;&#34;
+        return t * 2 * self.helix_factor / self.par_space + self.helix_start[2]
+
+    def __calculate_nearest_distance(self, voxel, path):
+        &#34;&#34;&#34;Calculate the nearest distance from a given voxel to a specified path.
+
+        Args:
+            voxel (tuple of int): Coordinates of the voxel.
+            path (tuple of lists): Points representing the path.
+
+        Returns:
+            float: Minimum distance between the voxel and the path.
+        &#34;&#34;&#34;
+        min_distance = float(&#39;inf&#39;)
+        voxel_x, voxel_y, voxel_z = voxel
+
+        for x, y, z in zip(path[0], path[1], path[2]):
+            distance = sqrt((x - voxel_x)**2 + (y - voxel_y)**2 + (z - voxel_z)**2)
+            min_distance = min(min_distance, distance)
+
+        return min_distance
+
+    def get_helix_voxels(self):
+        &#34;&#34;&#34;Generate and return the voxels located on or near the helix path.
+
+        This method calculates the coordinates of the center of all voxels that are on the trajectory of the helix
+        or within a specified maximum distance, starting with the helix start voxel.
+
+        Returns:
+            tuple: List of voxel coordinates, winning voxels, and their associated rewards.
+        &#34;&#34;&#34;
+        #print(f&#34;Calculating Helix Voxels&#34;)
+        elements = []
+        winning_voxels = []
+        rewards = []
+        current_reward = -1
+        elements.append((self.helix_start, current_reward))
+        # generate a reward system that gets lower the closer we get to the finish
+        # starting reward
+        reward_win = 0.0
+
+        for i in range(self.resolution):
+            t = self.par_space / self.resolution * (i / (1/self.percentage_of_helix)) + self.start_of_voxels
+            # calculate the helix voxels
+            x = self.x(t)
+            y = self.y(t)
+            z = self.z(t)
+            # round to the next voxel (convert to int)
+            x = int(round(x / self.voxel_size))
+            y = int(round(y / self.voxel_size))
+            z = int(round(z / self.voxel_size))
+
+            path = self.get_helix_data()
+
+            # add adjacent voxels to the elements list
+            for k in range(-self.max_distance, self.max_distance + 1):
+                for j in range(-self.max_distance, self.max_distance + 1):
+                    for l in range(-self.max_distance, self.max_distance + 1):
+                        if (i &gt;= self.resolution-((self.max_distance+4))):
+                            # Winning voxel
+                            element = (x + k, y + j, z + l)
+                            winning_voxels.append(element)
+                            # Add Voxel with reward 0
+                            elements.append((element, 0))
+                        else:
+                            # Non winning voxel
+                            voxel = (x + k, y + j, z + l)
+                            # Add Voxel with reward
+                            elements.append(((x + k, y + j, z + l), current_reward))
+
+            current_reward += 1 / self.resolution
+
+        # Sort out dual winning voxels
+        winning_voxels = list(dict.fromkeys(winning_voxels))
+
+        helix = []
+        rewards = []
+
+        seen = set()
+
+        for i, element in enumerate(elements):
+            coords, reward = element
+            if coords not in seen:
+                # Dont add if we did not generate voxels at start of helix and the voxel is at the start of the helix
+                # This mitigates a bug, where it will always generate a voxel at the start of the helix
+                if self.start_of_voxels is not 0 and coords is not self.helix_start:
+                    seen.add(coords)
+                    helix.append(coords)
+                    if coords in winning_voxels:
+                        rewards.append(0)
+                    else:
+                        rewards.append(reward)
+
+        return helix, winning_voxels, rewards
+
+    def get_helix_data(self):
+        &#34;&#34;&#34;Retrieve the raw coordinate data of the helix path.
+
+        This method returns the raw data of the helix path in terms of x, y, and z coordinates without any voxel processing.
+
+        Returns:
+            tuple of lists: x, y, and z coordinates of the helix.
+        &#34;&#34;&#34;
+        x = []
+        y = []
+        z = []
+        for i in range(self.resolution):
+            t = self.par_space / self.resolution * i
+            # calculate the helix voxels
+            x.append(self.x(t))
+            y.append(self.y(t))
+            z.append(self.z(t))
+
+
+        return (x, y, z)</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="path.Path.get_helix_data"><code class="name flex">
+<span>def <span class="ident">get_helix_data</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Retrieve the raw coordinate data of the helix path.</p>
+<p>This method returns the raw data of the helix path in terms of x, y, and z coordinates without any voxel processing.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>tuple</code> of <code>lists</code></dt>
+<dd>x, y, and z coordinates of the helix.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_helix_data(self):
+    &#34;&#34;&#34;Retrieve the raw coordinate data of the helix path.
+
+    This method returns the raw data of the helix path in terms of x, y, and z coordinates without any voxel processing.
+
+    Returns:
+        tuple of lists: x, y, and z coordinates of the helix.
+    &#34;&#34;&#34;
+    x = []
+    y = []
+    z = []
+    for i in range(self.resolution):
+        t = self.par_space / self.resolution * i
+        # calculate the helix voxels
+        x.append(self.x(t))
+        y.append(self.y(t))
+        z.append(self.z(t))
+
+
+    return (x, y, z)</code></pre>
+</details>
+</dd>
+<dt id="path.Path.get_helix_voxels"><code class="name flex">
+<span>def <span class="ident">get_helix_voxels</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Generate and return the voxels located on or near the helix path.</p>
+<p>This method calculates the coordinates of the center of all voxels that are on the trajectory of the helix
+or within a specified maximum distance, starting with the helix start voxel.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>tuple</code></dt>
+<dd>List of voxel coordinates, winning voxels, and their associated rewards.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_helix_voxels(self):
+    &#34;&#34;&#34;Generate and return the voxels located on or near the helix path.
+
+    This method calculates the coordinates of the center of all voxels that are on the trajectory of the helix
+    or within a specified maximum distance, starting with the helix start voxel.
+
+    Returns:
+        tuple: List of voxel coordinates, winning voxels, and their associated rewards.
+    &#34;&#34;&#34;
+    #print(f&#34;Calculating Helix Voxels&#34;)
+    elements = []
+    winning_voxels = []
+    rewards = []
+    current_reward = -1
+    elements.append((self.helix_start, current_reward))
+    # generate a reward system that gets lower the closer we get to the finish
+    # starting reward
+    reward_win = 0.0
+
+    for i in range(self.resolution):
+        t = self.par_space / self.resolution * (i / (1/self.percentage_of_helix)) + self.start_of_voxels
+        # calculate the helix voxels
+        x = self.x(t)
+        y = self.y(t)
+        z = self.z(t)
+        # round to the next voxel (convert to int)
+        x = int(round(x / self.voxel_size))
+        y = int(round(y / self.voxel_size))
+        z = int(round(z / self.voxel_size))
+
+        path = self.get_helix_data()
+
+        # add adjacent voxels to the elements list
+        for k in range(-self.max_distance, self.max_distance + 1):
+            for j in range(-self.max_distance, self.max_distance + 1):
+                for l in range(-self.max_distance, self.max_distance + 1):
+                    if (i &gt;= self.resolution-((self.max_distance+4))):
+                        # Winning voxel
+                        element = (x + k, y + j, z + l)
+                        winning_voxels.append(element)
+                        # Add Voxel with reward 0
+                        elements.append((element, 0))
+                    else:
+                        # Non winning voxel
+                        voxel = (x + k, y + j, z + l)
+                        # Add Voxel with reward
+                        elements.append(((x + k, y + j, z + l), current_reward))
+
+        current_reward += 1 / self.resolution
+
+    # Sort out dual winning voxels
+    winning_voxels = list(dict.fromkeys(winning_voxels))
+
+    helix = []
+    rewards = []
+
+    seen = set()
+
+    for i, element in enumerate(elements):
+        coords, reward = element
+        if coords not in seen:
+            # Dont add if we did not generate voxels at start of helix and the voxel is at the start of the helix
+            # This mitigates a bug, where it will always generate a voxel at the start of the helix
+            if self.start_of_voxels is not 0 and coords is not self.helix_start:
+                seen.add(coords)
+                helix.append(coords)
+                if coords in winning_voxels:
+                    rewards.append(0)
+                else:
+                    rewards.append(reward)
+
+    return helix, winning_voxels, rewards</code></pre>
+</details>
+</dd>
+<dt id="path.Path.x"><code class="name flex">
+<span>def <span class="ident">x</span></span>(<span>self, t: float)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Calculate the x-coordinate of a point on the helix path at a given parameter.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>t</code></strong> :&ensp;<code>float</code></dt>
+<dd>Parameter defining a point along the helix.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>float</code></dt>
+<dd>x-coordinate of the helix at parameter t.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def x(self, t: float):
+    &#34;&#34;&#34;Calculate the x-coordinate of a point on the helix path at a given parameter.
+
+    Args:
+        t (float): Parameter defining a point along the helix.
+
+    Returns:
+        float: x-coordinate of the helix at parameter t.
+    &#34;&#34;&#34;
+    return - 3 * self.helix_factor * cos((4 / self.par_space)*pi*t) + 3 * self.helix_factor + self.helix_start[0]</code></pre>
+</details>
+</dd>
+<dt id="path.Path.y"><code class="name flex">
+<span>def <span class="ident">y</span></span>(<span>self, t: float)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Calculate the y-coordinate of a point on the helix path at a given parameter.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>t</code></strong> :&ensp;<code>float</code></dt>
+<dd>Parameter defining a point along the helix.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>float</code></dt>
+<dd>y-coordinate of the helix at parameter t.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def y(self, t: float):
+    &#34;&#34;&#34;Calculate the y-coordinate of a point on the helix path at a given parameter.
+
+    Args:
+        t (float): Parameter defining a point along the helix.
+
+    Returns:
+        float: y-coordinate of the helix at parameter t.
+    &#34;&#34;&#34;
+    return 3 * self.helix_factor * sin((4 / self.par_space)*pi*t) + self.helix_start[1]</code></pre>
+</details>
+</dd>
+<dt id="path.Path.z"><code class="name flex">
+<span>def <span class="ident">z</span></span>(<span>self, t: float)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Calculate the z-coordinate of a point on the helix path at a given parameter.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>t</code></strong> :&ensp;<code>float</code></dt>
+<dd>Parameter defining a point along the helix.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>float</code></dt>
+<dd>z-coordinate of the helix at parameter t.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def z(self, t: float):
+    &#34;&#34;&#34;Calculate the z-coordinate of a point on the helix path at a given parameter.
+
+    Args:
+        t (float): Parameter defining a point along the helix.
+
+    Returns:
+        float: z-coordinate of the helix at parameter t.
+    &#34;&#34;&#34;
+    return t * 2 * self.helix_factor / self.par_space + self.helix_start[2]</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="path.Path" href="#path.Path">Path</a></code></h4>
+<ul class="">
+<li><code><a title="path.Path.get_helix_data" href="#path.Path.get_helix_data">get_helix_data</a></code></li>
+<li><code><a title="path.Path.get_helix_voxels" href="#path.Path.get_helix_voxels">get_helix_voxels</a></code></li>
+<li><code><a title="path.Path.x" href="#path.Path.x">x</a></code></li>
+<li><code><a title="path.Path.y" href="#path.Path.y">y</a></code></li>
+<li><code><a title="path.Path.z" href="#path.Path.z">z</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>

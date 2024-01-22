@@ -106,23 +106,15 @@ class Robot_Arm:
         The arm is configured with a set of links (each link has one joint) and is capable of inverse kinematics 
         for precise control. The learning aspect involves creating a dictionary of possible actions and setting 
         up an environment for reinforcement learning.
+        Args:
+            starting_pos (tuple): The starting position (x, y, z) of the helix path for the arm.
+            section_length (float): The length of the helix section that the arm will learn to navigate.
+            helix_section (int): The specific section of the helix that the arm is currently working on.
+            voxel_volume (int): The volume of the voxels used in the learning environment.
+            num_axis (int): The number of axes or joints in the robotic arm.
 
-        :param starting_pos: The starting position (x, y, z) of the helix path for the arm.
-        :type starting_pos: (float, float, float)
-
-        :param section_length: The length of the helix section that the arm will learn to navigate.
-        :type section_length: float
-
-        :param helix_section: The specific section of the helix that the arm is currently working on.
-        :type helix_section: int
-
-        :param voxel_volume: The volume of the voxels used in the learning environment.
-        :type voxel_volume: int
-
-        :param num_axis: The number of axes or joints in the robotic arm.
-        :type num_axis: int
-
-        :return: None
+        Returns:
+            None
         """
         # Create array for voxels, q-values and winning voxels
         self.voxels_index_dict = [None]
@@ -269,22 +261,22 @@ class Robot_Arm:
     def __deg_to_rad(self, deg: float) -> float:
         """Convert degree to radians.
 
-        :param deg: Degrees to convert to radians
-        :type deg: float
+        Args:
+            deg (float): Degrees to convert to radians.
 
-        :return: radians
-        :rtype: float
+        Returns:
+            float: Radians equivalent of the input degrees.
         """
         return deg*np.pi/180
 
     def __rad_to_deg(self, rad: float) -> float:
         """Convert radians to degrees.
 
-        :param rad: Ratiants to convert to degrees
-        :type rad: float
+        Args:
+            rad (float): Radians to convert to degrees.
 
-        :return: Degrees
-        :rtype: float
+        Returns:
+            float: Degrees equivalent of the input radians.
         """
         return rad*180/np.pi
 
@@ -306,20 +298,20 @@ class Robot_Arm:
     def __limit_angles(self, angles: (float, float, float, float, float, float)) -> (float, float, float, float, float,):
         """Limit all angles of the robot (in rad) to +-pi (+-180°).
 
-        :param rad: Angles in radians
-        :type rad: float
+        Args:
+            angle (float): Angle in radians to be limited.
 
-        :return: Limited angles in radians
-        :rtype: float
+        Returns:
+            float: Angle limited to the range of +-pi.
         """
         # no limit for now.
         return angles
 
     def __get_tcp_voxel_position(self) -> (int, int, int):
-        """Get voxel the TCP is in.
+        """Get the current voxel position of the robotic arm's end effector (TCP).
 
-        :return: Tuple containing the x, y and z coordinates of the voxel
-        :rtype: (int, int, int)
+        Returns:
+            tuple: Coordinates of the voxel containing the end effector.
         """
         # Compute forward kinematics to receive current TCP
         tcp = self.rob.end_effector_position()
@@ -337,40 +329,33 @@ class Robot_Arm:
         return self.current_voxel in self.winning_voxels[self.move_along_q_in_section]
 
     def __check_in_voxels(self) -> bool:
-        """Check if the current TCP position is in a voxel.
+        """Check if the robotic arm's end effector (TCP) is currently within a defined voxel.
 
-        :return: Bool indicating if the TCP is in a voxel
-        :rtype: bool
+        Returns:
+            bool: True if the TCP is within a voxel, False otherwise.
         """
         #print(f"Check in Voxels.\n  Current Voxel: {self.current_voxel}\n  Voxels index dict: {self.voxels_index_dict[0]}")
         return self.current_voxel in self.voxels_index_dict[self.move_along_q_in_section]
 
-    def __get_reward(self) -> int:
-        """Get the reward for the current position.
+    def __get_reward(self) -> float:
+        """Retrieve the reward for the robotic arm's current position.
 
-        :return: Reward, -1 when at the start, getting 0 linearly when getting closer to the target
-        :rtype: int
+        Returns:
+            float: Reward value for the current position.
         """
         return self.rewards[self.voxels_index_dict[0][self.current_voxel]]
 
     def __interpolate_path(self, x, y, z, new_length):
-        """
-        Interpolate a 3D path to a new length using linear interpolation.
+        """Interpolate a 3D path to a new length using linear interpolation.
 
-        :param x: The x coordinates of the original path.
-        :type x: list or numpy.ndarray
+        Args:
+            x (list): X-coordinates of the path.
+            y (list): Y-coordinates of the path.
+            z (list): Z-coordinates of the path.
+            new_length (int): The desired length of the interpolated path.
 
-        :param y: The y coordinates of the original path.
-        :type y: list or numpy.ndarray
-
-        :param z: The z coordinates of the original path.
-        :type z: list or numpy.ndarray
-
-        :param new_length: The desired number of points in the interpolated path.
-        :type new_length: int
-
-        :return: A tuple of three arrays representing the x, y, and z coordinates of the interpolated path.
-        :rtype: (numpy.ndarray, numpy.ndarray, numpy.ndarray)
+        Returns:
+            tuple: Interpolated path as three lists (x, y, z).
         """
         # Create an array of indices
         old_indices = np.linspace(0, 1, num=len(x))
@@ -396,14 +381,12 @@ class Robot_Arm:
         two sets of values, between two provided paths. The paths are assumed to be sequences of
         points (usually representing coordinates) and the MSE is calculated over these points.
 
-        :param path_1: The first path, represented as a sequence of points.
-        :type path_1: list or numpy.ndarray
+        Args:
+            path_1 (list): The first path as a list of coordinates.
+            path_2 (list): The second path as a list of coordinates to compare with the first path.
 
-        :param path_2: The second path, represented as a sequence of points to compare with the first path.
-        :type path_2: list or numpy.ndarray
-
-        :return: The mean squared error between the two paths.
-        :rtype: float
+        Returns:
+            float: The mean squared error between the two paths.
         """
         # Calculate squared errors
         squared_errors = (path_1 - path_2) ** 2
@@ -415,30 +398,28 @@ class Robot_Arm:
     def get_joint_angles_degrees(self) -> (float, float, float, float, float,):
         """Return current joint angles in degrees.
 
-        :return: Tuple with the current angles of the robot joints in degrees
-        :rtype: (float, float, float, float, float,)
-
-        :return: None
+        Returns:
+            tuple: Current joint angles in degrees.
         """
         return np.array([self.__rad_to_deg(angle) for angle in self.rob.get_current_joint_config()])
 
     def get_joint_angles_rad(self) -> (float, float, float, float, float,):
         """Return current joint angles in radians.
 
-        :return: Tuple with the current angles of the robot joints in radians
-        :rtype: (float, float, float, float, float,)
-
-        :return: None
+        Returns:
+            tuple: Current joint angles in radians.
         """
         return self.rob.get_current_joint_config()
 
     def set_joint_angles_degrees(self, angles: (float, float, float, float, float,), save=False) -> None:
         """Set joint angles in degrees.
 
-        :param angles: Tuple with the angles for the robot joints in degrees
-        :type angles: (float, float, float, float, float,)
+        Args:
+            angles (tuple): Joint angles in degrees.
+            save (bool, optional): Whether to save the new angles to the robot's state.
 
-        :return: None
+        Returns:
+            None
         """
         # Convert degrees of angles to radians
         angles_rad = np.array([self.__deg_to_rad(angle) for angle in angles])
@@ -447,10 +428,13 @@ class Robot_Arm:
     def set_joint_angles_rad(self, angles: (float, float, float, float, float,), save=False, set_last_voxel=True) -> None:
         """Set joint angles in radians.
 
-        :param angles: Tuple with the angles for the robot joints in radians
-        :type angles: (float, float, float, float, float,)
+        Args:
+            angles (tuple): Joint angles in radians.
+            save (bool, optional): Whether to save the new angles to the robot's state.
+            set_last_voxel (bool, optional): Whether to update the 'last voxel' position.
 
-        :return: None
+        Returns:
+            None
         """
         # Limit angles to +-180°
         angles_rad = self.__limit_angles(angles)
@@ -467,7 +451,8 @@ class Robot_Arm:
     def reset(self) -> None:
         """Reset robot to starting state.
 
-        :return: None
+        Returns:
+            None
         """
         self.rob.reset(save=False)
         self.out_of_bounds_counter = 0
@@ -476,9 +461,8 @@ class Robot_Arm:
     def get_random_action(self) -> ((float, float, float, float, float,), int):
         """Get a random action from all actions.
 
-        :return: Tuple containing the action and the unique integer representing the action in the
-                 actions dict
-        :rtype: ((float, float, float, float, float,), int)
+        Returns:
+            tuple: A random action and its unique identifier.
         """
         x = np.random.randint(len(self.actions_dict))
         return self.actions_dict[x], x
@@ -486,8 +470,8 @@ class Robot_Arm:
     def get_current_qs(self) -> list[float]:
         """Get the q values of the current state.
 
-        :return: List of Q values
-        :rtype: list of float
+        Returns:
+            list: List of Q-values for the current state.
         """
         #print(f"self.current_voxel: {self.current_voxel}")
         # Return the value of Q at the index of the current voxel in the index dict
@@ -496,11 +480,11 @@ class Robot_Arm:
     def get_current_q(self, action: int) -> float:
         """Get the Q value for the current state and a specific action.
 
-        :param action: Action index for the action dict
-        :type action: int
+        Args:
+            action (int): Action index for the action dictionary.
 
-        :return: Q value
-        :rtype: float
+        Returns:
+            float: Q-value for the specified action at the current state.
         """
         # Return the value of Q at the index of the current voxel in the index dict
         return self.Q[self.move_along_q_in_section][self.voxels_index_dict[self.move_along_q_in_section][self.current_voxel]][action]
@@ -508,11 +492,11 @@ class Robot_Arm:
     def get_last_q(self, action: int) -> float:
         """Get the Q value for the current state and a specific action.
 
-        :param action: Action index for the action dict
-        :type action: int
+        Args:
+            action (int): Action index for the action dictionary.
 
-        :return: Q value
-        :rtype: float
+        Returns:
+            float: Q-value for the specified action at the last state.
         """
         # Return the value of Q at the index of the current voxel in the index dict
         return self.Q[0][self.voxels_index_dict[0][self.last_voxel]][action]
@@ -520,11 +504,11 @@ class Robot_Arm:
     def get_last_n_q(self, action: int) -> float:
         """Get the Q values of n states ago, with n = 5.
 
-        :param action: Action index for the action dict
-        :type action: int
+        Args:
+            action (int): Action index for the action dictionary.
 
-        :return: Q value
-        :rtype: float
+        Returns:
+            float: Q-value for the specified action 'n' steps ago.
         """
         # Return the value of Q at the index of the current voxel in the index dict
         return self.Q[0][self.voxels_index_dict[0][self.last_n_voxel[0]]][action]
@@ -532,13 +516,12 @@ class Robot_Arm:
     def set_current_q(self, action: int, q: float) -> None:
         """Set a Q value for the current state.
 
-        :param action: Action index for the action dict
-        :type action: int
+        Args:
+            action (int): Action index for the action dictionary.
+            q (float): New Q-value to be set.
 
-        :param new_q: new Q value to set
-        :type new_q: float
-
-        :return: None
+        Returns:
+            None
         """
         # Set the value of Q at the index of the current voxel in the index dict
         self.Q[0][self.voxels_index_dict[0][self.current_voxel]][action] = q
@@ -546,13 +529,12 @@ class Robot_Arm:
     def set_last_q(self, action: int, q: float) -> None:
         """Set a Q value for the state before the current state.
 
-        :param action: Action index for the action dict
-        :type action: int
+        Args:
+            action (int): Action index for the action dictionary.
+            q (float): New Q-value to be set.
 
-        :param new_q: new Q value to set
-        :type new_q: float
-
-        :return: None
+        Returns:
+            None
         """
         # Set the value of Q at the index of the current voxel in the index dict
         self.Q[0][self.voxels_index_dict[0][self.last_voxel]][action] = q
@@ -561,13 +543,12 @@ class Robot_Arm:
     def set_last_n_q(self, action: int, q: float) -> None:
         """Set a q value for n states before the current state, with n = 5.
 
-        :param action: Action index for the action dict
-        :type action: int
+        Args:
+            action (int): Action index for the action dictionary.
+            q (float): New Q-value to be set.
 
-        :param new_q: new Q value to set
-        :type new_q: float
-
-        :return: None
+        Returns:
+            None
         """
         # Set the value of Q at the index of the current voxel in the index dict
         self.Q[0][self.voxels_index_dict[0][self.last_n_voxel[0]]][action] = q
@@ -576,40 +557,38 @@ class Robot_Arm:
     def get_action_dict(self) -> dict:
         """Get the dict containing all actions (action_number : action).
 
-        :return: Dict with all actions
-        :rtype: dict
+        Returns:
+            dict: Dictionary with all possible actions.
         """
         return self.actions_dict
 
     def get_action_from_dict(self, action: int) -> (float, float, float, float, float,):
         """Get action from the actions dict.
 
-        :param action: Action index for the action dict
-        :type action: int
+        Args:
+            action (int): Action index for the action dictionary.
 
-        :return: Tuple with action
-        :rtype: (float, float, float, float, float,)
+        Returns:
+            tuple: The action corresponding to the given index.
         """
         return self.actions_dict[action]
 
     def get_inverse_action_dict(self) -> dict:
         """Get the inverse dict containing all actions (action : action_number).
 
-        :return: Dict with all actions
-        :rtype: dict
+        Returns:
+            dict: Inverse dictionary containing all actions.
         """
         return self.inv_actions_dict
 
     def do_move(self, action: int) -> ((int, int, int), int, bool):
         """Move the robot based on the action.
 
-        :param action: Action index for the action dict
-                       Action dict can be obtained with get_action_dict()
-                       Inverse action dict can be obtained with get_inverse_action_dict()
-        :type action: int
+        Args:
+            action (int): Action index for the action dictionary.
 
-        :return: tuple containing the new TCP (x, y, z), reward and win indication
-        :rtype: ((int, int, int), int, bool)
+        Returns:
+            tuple: New TCP coordinates, reward, and a boolean indicating if it's a winning move.
         """
         # Assume no win for now, set to True when in winning voxels
         win = False
@@ -645,8 +624,8 @@ class Robot_Arm:
         This method calculates the current position of the arm's end effector using forward kinematics.
         The position is given in terms of Cartesian coordinates (x, y, z) in the arm's workspace.
 
-        :return: The coordinates of the end effector.
-        :rtype: (float, float, float)
+        Returns:
+            tuple: Coordinates of the end effector.
         """
         # Forward kinematics for TCP coordinate calculation
         tcp_matrix = self.rob.fkine()
@@ -664,22 +643,15 @@ class Robot_Arm:
         Will stop when running out of bounds.
         Needs to be called last.
 
-        :param draw_path: Draw the path the robot is supposed to learn
-        :type draw_path: bool
+        Args:
+            draw_path (bool): If True, the path the robot is supposed to learn is drawn.
+            draw_voxels (bool): If True, the voxels are drawn.
+            zoom_path (bool): If True, the drawing is zoomed in on the path.
+            fps (int): Frames per second for the animation.
+            max_steps (int): Maximum number of steps in the animation to prevent infinite loops.
 
-        :param draw_voxels: Draw the voxels
-        :type draw_voxels: bool
-
-        :param zoom_path: Fit drawing to the path
-        :type zoom_path: bool
-
-        :param fps: Fps of the animation
-        :type fps: int
-
-        :param max_steps: Maximum numbers of steps to animate before printing "Possible infinite loop!"
-        :type max_steps: int
-
-        :return: None
+        Returns:
+            None
         """
         # Reset robot to starting position
         self.reset()
@@ -716,19 +688,14 @@ class Robot_Arm:
     def show(self, draw_path=False, draw_voxels=False, zoom_path=False, draw_q_path=False) -> None:
         """Open window and draw robot arm.
 
-        :param draw_path: Draw the path the robot is supposed to learn
-        :type draw_path: bool
+        Args:
+            draw_path (bool): If True, the target path is drawn.
+            draw_voxels (bool): If True, voxels are drawn.
+            zoom_path (bool): If True, zooms in on the path in the visualization.
+            draw_q_path (bool): If True, draws the path taken based on Q-values.
 
-        :param draw_voxels: Draw the voxels
-        :type draw_voxels: bool
-
-        :param zoom_path: Fit drawing to the path
-        :type zoom_path: bool
-
-        :param draw_q_path: Move Robot through Q values and draw its path
-        :type draw_q_path: bool
-
-        :return: None
+        Returns:
+            None
         """
         if draw_q_path is True:
             self.get_finishing_angles_rad()
@@ -774,26 +741,15 @@ class Robot_Arm:
 
         Needs to be called last.
 
-        :param draw_path: Draw the path the robot is supposed to learn
-        :type draw_path: bool
+        Args:
+            draw_path (bool): If True, the path the robot is supposed to learn is drawn.
+            draw_voxels (bool): If True, voxels are drawn.
+            zoom_path (bool): If True, zooms in on the path in the visualization.
+            fps (int): Frames per second for the animation.
+            save_path (str, optional): (Currently BROKEN!) Path to save the animation video. None means no saving.
 
-        :param draw_voxels: Draw the voxels
-        :type draw_voxels: bool
-
-        :param zoom_path: Fit drawing to the path
-        :type zoom_path: bool
-
-        :param fps: Fps of the animation
-        :type fps: int
-
-        :param save_path: BROKEN ATM!
-                          Save animation as video in path if not None
-                          FFMPEG needed (for debian linux users: sudo apt install ffmpeg)
-                          name of the animation and format must be specified
-                          (e.g.: animation.mp4)
-        :type save_path: str
-
-        :return: None
+        Returns:
+            None
         """
         if zoom_path is False:
             if draw_path is False:
@@ -844,7 +800,8 @@ class Robot_Arm:
         named based on the number of axes of the robotic arm and the specific helix section the arm
         is learning. This enables the persistence of learning data for later use or analysis.
 
-        :return: None
+        Returns:
+            None
 
         Note: The files are saved in the directory 'learned_values_[num_axis]_axis', with the helix section
         number appended to the filenames. Ensure that this directory exists or handle exceptions
@@ -869,7 +826,8 @@ class Robot_Arm:
         named based on the number of axes of the robotic arm and the specific helix section the arm has
         learned.
 
-        :return: None
+        Returns:
+            None
 
         Note: The method handles the absence of files by catching exceptions and returning early.
         This means that if any of the expected files are not found, the method will not update the
@@ -917,7 +875,8 @@ class Robot_Arm:
         The method handles the loading of data and ensures that the robotic arm's learning attributes are
         updated accordingly.
 
-        :return: None
+        Returns:
+            None
 
         Note: The method expects files to be located in the 'learned_values_[num_axis]_axis' directory
         and named based on the current section to stitch. It handles the absence of files
@@ -978,12 +937,12 @@ class Robot_Arm:
         or reaches a predefined maximum number of steps. The method provides the final status and the joint angles
         of the robot arm in radians.
 
-        :param max_steps: Maximum number of steps to perform before stopping the navigation to prevent infinite loops.
-        :type max_steps: int
+        Args:
+            max_steps (int): Maximum number of steps to perform for determining finishing angles.
 
-        :return: A tuple containing the final status of the navigation ('Success', 'Out of bounds', or 'Infinite Loop')
-                 and the final joint angles of the robot arm in radians.
-        :rtype: (str, (float, float, float, float, float,))
+        Returns:
+            tuple: A string indicating the final status ('Success', 'Out of bounds', 'Infinite Loop')
+                   and the final joint angles in radians.
 
         Note: The method resets the robot arm to its starting position before beginning the navigation process.
         """
@@ -1032,12 +991,11 @@ class Robot_Arm:
         each dimension (x, y, z) and combines these to provide a single MSE value representing the average
         deviation of the robot's path from the desired path.
 
-        :param support_points: The number of points to use in the interpolation of the paths,
-                               leading to a smoother and more comparable analysis.
-        :type support_points: int
+        Args:
+            support_points (int): Number of points for path interpolation.
 
-        :return: The Mean Squared Error between the interpolated desired path and the robot's path.
-        :rtype: float
+        Returns:
+            float: The Mean Squared Error between the interpolated desired path and the robot's path.
         """
         self.get_finishing_angles_rad()
         path_x, path_y, path_z = self.__interpolate_path(self.path[0], self.path[1], self.path[2], support_points)
@@ -1060,11 +1018,11 @@ class Robot_Arm:
         and are used to set the initial configuration (q0) of the robot. After setting the angles, the robot arm
         is reset to this starting position.
 
-        :param angles: A tuple representing the joint angles in radians. The length and content of the tuple
-                       should correspond to the number of joints in the robotic arm.
-        :type angles: tuple of floats
+        Args:
+            angles (tuple): A tuple of joint angles in radians.
 
-        :return: None
+        Returns:
+            None
         """
         # Convert angles to numpy array
         angles_array = np.asarray(angles)
