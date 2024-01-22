@@ -1,5 +1,4 @@
-"""
-Robotic Arm Learning Module
+"""Robotic Arm Learning Module.
 
 This module contains functions and utilities for implementing and managing the learning process of a robotic arm
 using reinforcement learning techniques, specifically the n-step SARSA algorithm. It includes functions for

@@ -198,7 +198,7 @@ class Robot_Arm:
         # Create all possible actions
         # Define possible actions for each joint in deg
         joint_actions_deg = [-0.1, 0, 0.1]
-        # convert actionspace to radiants
+        # convert actionspace to radians
         joint_actions_rad = np.array([self.__deg_to_rad(action) for action in joint_actions_deg])
 
         # Generate all possible action combinations for the joints
@@ -267,18 +267,18 @@ class Robot_Arm:
         self.starting_pos = starting_pos
 
     def __deg_to_rad(self, deg: float) -> float:
-        """Convert degree to radiants.
+        """Convert degree to radians.
 
-        :param deg: Degrees to convert to radiants
+        :param deg: Degrees to convert to radians
         :type deg: float
 
-        :return: Radiants
+        :return: radians
         :rtype: float
         """
         return deg*np.pi/180
 
     def __rad_to_deg(self, rad: float) -> float:
-        """Convert radiants to degrees.
+        """Convert radians to degrees.
 
         :param rad: Ratiants to convert to degrees
         :type rad: float
@@ -291,10 +291,10 @@ class Robot_Arm:
     def __limit_angle(self, angle: float) -> float:
         """Limit angle (in rad) to +-pi (+-180°).
 
-        :param rad: Angle in radiants
+        :param rad: Angle in radians
         :type rad: float
 
-        :return: Limited angle in radiants
+        :return: Limited angle in radians
         :rtype: float
         """
         if angle > np.pi/2:
@@ -306,10 +306,10 @@ class Robot_Arm:
     def __limit_angles(self, angles: (float, float, float)) -> (float, float, float):
         """Limit all angles of the robot (in rad) to +-pi (+-180°).
 
-        :param rad: Angles in radiants
+        :param rad: Angles in radians
         :type rad: float
 
-        :return: Limited angles in radiants
+        :return: Limited angles in radians
         :rtype: float
         """
         # no limit for now.
@@ -423,9 +423,9 @@ class Robot_Arm:
         return np.array([self.__rad_to_deg(angle) for angle in self.rob.get_current_joint_config()])
 
     def get_joint_angles_rad(self) -> (float, float, float):
-        """Return current joint angles in radiants.
+        """Return current joint angles in radians.
 
-        :return: Tuple with the current angles of the robot joints in radiants
+        :return: Tuple with the current angles of the robot joints in radians
         :rtype: (float, float, float)
 
         :return: None
@@ -440,14 +440,14 @@ class Robot_Arm:
 
         :return: None
         """
-        # Convert degrees of angles to radiants
+        # Convert degrees of angles to radians
         angles_rad = np.array([self.__deg_to_rad(angle) for angle in angles])
         self.set_joint_angles_rad(angles_rad, save=save)
 
     def set_joint_angles_rad(self, angles: (float, float, float), save=False, set_last_voxel=True) -> None:
-        """Set joint angles in radiants.
+        """Set joint angles in radians.
 
-        :param angles: Tuple with the angles for the robot joints in radiants
+        :param angles: Tuple with the angles for the robot joints in radians
         :type angles: (float, float, float)
 
         :return: None
@@ -837,6 +837,19 @@ class Robot_Arm:
                                      fps=fps, save_path=save_path)
 
     def save_learned_to_file(self):
+        """Save the learned Q-values, winning voxels, index dictionary, and rewards to files.
+
+        This method serializes and writes the Q-values, winning voxels, voxel index dictionary, and
+        rewards used by the robotic arm in the learning process to separate files. The files are
+        named based on the number of axes of the robotic arm and the specific helix section the arm
+        is learning. This enables the persistence of learning data for later use or analysis.
+
+        :return: None
+
+        Note: The files are saved in the directory 'learned_values_[num_axis]_axis', with the helix section
+        number appended to the filenames. Ensure that this directory exists or handle exceptions
+        for potential 'FileNotFoundError'.
+        """
         # Write Qs to file
         np.save(f"learned_values_{self.num_axis}_axis/Q_values_section_{self.helix_section}.npy", self.Q[0])
         # Write Winning Voxels to file
@@ -847,8 +860,22 @@ class Robot_Arm:
         # Write rewards used to file
         np.save(f"learned_values_{self.num_axis}_axis/Rewards_{self.helix_section}.npy", self.rewards)
 
-
     def load_learned_from_file(self):
+        """Load previously saved Q-values, winning voxels, index dictionary, and rewards from files.
+
+        This method attempts to load the learning data of the robotic arm from files saved earlier by
+        the `save_learned_to_file` method. It reads the Q-values, winning voxels, voxel index dictionary,
+        and rewards and sets them to the respective attributes of the class. The files are expected to be
+        named based on the number of axes of the robotic arm and the specific helix section the arm has
+        learned.
+
+        :return: None
+
+        Note: The method handles the absence of files by catching exceptions and returning early.
+        This means that if any of the expected files are not found, the method will not update the
+        corresponding attributes and will exit without error. Ensure that the files are located in the
+        'learned_values_[num_axis]_axis' directory.
+        """
         # Load Qs from file
         try:
             self.Q[0] = np.load(f"learned_values_{self.num_axis}_axis/Q_values_section_{self.helix_section}.npy")
@@ -881,9 +908,21 @@ class Robot_Arm:
             #print("No file, not loading")
             return
 
-
     def stitch_from_file(self):
-        """Stitch the next segment of voxels and qs from file to the robots Qs and Voxels
+        """Stitch the next segment of learned data from files into the robot's learning attributes.
+
+        This method is used to load additional segments of learned data (Q-values, winning voxels, and
+        voxel index dictionaries) from files and append them to the existing data structures of the robot.
+        This is useful for constructing a comprehensive learning model from multiple segments of learned data.
+        The method handles the loading of data and ensures that the robotic arm's learning attributes are
+        updated accordingly.
+
+        :return: None
+
+        Note: The method expects files to be located in the 'learned_values_[num_axis]_axis' directory
+        and named based on the current section to stitch. It handles the absence of files
+        by catching exceptions and not updating the attributes in such cases. Also, ensure that the
+        method is called in the correct sequence with the appropriate section to be stitched.
         """
         print(f"stitching section: {self.section_to_stitch}")
         #print("Loading Qs and Voxels from file and stitching them to the robots Qs and voxels")
@@ -932,6 +971,22 @@ class Robot_Arm:
         self.section_to_stitch += 1
 
     def get_finishing_angles_rad(self, max_steps=2000) -> (str, (float, float, float)):
+        """Determine the finishing angles of the robot arm based on the learned movements.
+
+        This method navigates the robot arm through its environment based on the highest Q-values obtained
+        from the learning process. It stops navigating either when it goes out of bounds, completes the task,
+        or reaches a predefined maximum number of steps. The method provides the final status and the joint angles
+        of the robot arm in radians.
+
+        :param max_steps: Maximum number of steps to perform before stopping the navigation to prevent infinite loops.
+        :type max_steps: int
+
+        :return: A tuple containing the final status of the navigation ('Success', 'Out of bounds', or 'Infinite Loop')
+                 and the final joint angles of the robot arm in radians.
+        :rtype: (str, (float, float, float))
+
+        Note: The method resets the robot arm to its starting position before beginning the navigation process.
+        """
         # Reset robot to starting position
         self.reset()
 
@@ -970,6 +1025,20 @@ class Robot_Arm:
         return return_string, tuple(self.get_joint_angles_rad())
 
     def calc_mse(self, support_points=1000):
+        """Calculate the Mean Squared Error (MSE) between the desired path and the path taken by the robot.
+
+        This method first interpolates both the desired path and the path taken by the robot (q_path) to a
+        specified number of support points. It then calculates the Mean Squared Error (MSE) separately for
+        each dimension (x, y, z) and combines these to provide a single MSE value representing the average
+        deviation of the robot's path from the desired path.
+
+        :param support_points: The number of points to use in the interpolation of the paths,
+                               leading to a smoother and more comparable analysis.
+        :type support_points: int
+
+        :return: The Mean Squared Error between the interpolated desired path and the robot's path.
+        :rtype: float
+        """
         self.get_finishing_angles_rad()
         path_x, path_y, path_z = self.__interpolate_path(self.path[0], self.path[1], self.path[2], support_points)
         q_path_x, q_path_y, q_path_z = self.__interpolate_path(self.q_path[0], self.q_path[1], self.q_path[2], support_points)
@@ -985,6 +1054,18 @@ class Robot_Arm:
         return total_mse
 
     def set_starting_angles_rad(self, angles=(float, float, float)):
+        """Set the starting joint angles of the robotic arm in radians.
+
+        This method configures the starting joint angles of the robotic arm. The angles are specified in radians
+        and are used to set the initial configuration (q0) of the robot. After setting the angles, the robot arm
+        is reset to this starting position.
+
+        :param angles: A tuple representing the joint angles in radians. The length and content of the tuple
+                       should correspond to the number of joints in the robotic arm.
+        :type angles: tuple of floats
+
+        :return: None
+        """
         # Convert angles to numpy array
         angles_array = np.asarray(angles)
 
