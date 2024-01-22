@@ -85,7 +85,7 @@ class Robot_Arm:
             # Initial arm angles
             q0 = np.array((0, 0, 0))
         else:
-            print(f"Number of robot axis num_axis must be either 3 or 6. It currently is: {num_axis}")
+            raise ValueError(f"\033[91mNumber of robot axis num_axis must be either 3 or 6. It currently is: {num_axis}")
             return
 
         # Create arm
