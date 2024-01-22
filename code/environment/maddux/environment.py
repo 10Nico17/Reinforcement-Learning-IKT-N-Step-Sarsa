@@ -63,6 +63,24 @@ class Environment:
         :param save_path: (Optional) Path to save mp4 in instead of displaying
         :type save_path: String or None
 
+        :param xlim: (Default: None) Limits for the x axis in the plot
+        :type xlim: (float, float)
+
+        :param ylim: (Default: None) Limits for the y axis in the plot
+        :type ylim: (float, float)
+
+        :param zlim: (Default: None) Limits for the z axis in the plot
+        :type zlim: (float, float)
+
+        :param voxels: (Default: None) Voxels around path
+        :type voxels: list of tuples of ints [(x, y, z), (x, y, z)...]
+
+        :param winning_voxels: (Default: None) Winning Voxels around path
+        :type winning_voxels: list of tuples of ints [(x, y, z), (x, y, z)...]
+
+        :param fps: (Default: 30) default fps the animation ist trying to reach.
+        :type fps: float
+
         :rtype: None
         """
         fps = fps
@@ -216,6 +234,15 @@ class Environment:
 
         :param show: (Default: True) Whether to show the figure
         :type show: bool
+
+        :param xlim: (Default: None) Limits for the x axis in the plot
+        :type xlim: (float, float)
+
+        :param ylim: (Default: None) Limits for the y axis in the plot
+        :type ylim: (float, float)
+
+        :param zlim: (Default: None) Limits for the z axis in the plot
+        :type zlim: (float, float)
 
         :rtype: None
         """

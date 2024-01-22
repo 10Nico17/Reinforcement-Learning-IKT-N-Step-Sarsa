@@ -1,7 +1,7 @@
 """
 Robotic Arm Simulation and Learning Environment
 
-This module provides a comprehensive environment for simulating and learning robotic arm movements. 
+This module provides a comprehensive environment for simulating and learning robotic arm movements.
 It leverages the Maddux library for robot visualization and arm manipulation. The core class, Robot_Arm,
 encompasses a wide range of functionalities including initializing the robot arm, setting and getting joint
 angles, executing movements based on learned actions, and visualizing these movements.
@@ -788,7 +788,7 @@ class Robot_Arm:
 
         :param save_path: BROKEN ATM!
                           Save animation as video in path if not None
-                          FFMPEG needed (sudo apt install ffmpeg)
+                          FFMPEG needed (for debian linux users: sudo apt install ffmpeg)
                           name of the animation and format must be specified
                           (e.g.: animation.mp4)
         :type save_path: str

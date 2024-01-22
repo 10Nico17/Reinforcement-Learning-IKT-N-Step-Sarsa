@@ -1,8 +1,78 @@
+"""Helix Path Generation for Robotic Navigation.
+
+This module provides the functionality to create and manage a helix-shaped path, typically used
+in robotic navigation and trajectory planning. The primary class, Path, generates a three-dimensional
+helix path, calculates the coordinates of voxels along this path, and determines winning voxels based
+on their proximity to the path. It supports various configurations of the helix, such as the start
+position, voxel size, and the maximum distance for voxel generation from the path.
+
+Classes:
+    Path: Manages the generation and handling of a helix-shaped path.
+
+The Path class offers methods to calculate specific points on the helix given a parameter, generate
+voxels on or near the helix trajectory, and obtain the raw helix data. It is equipped to handle
+different scales of the helix and provides functionalities for calculating the nearest distance from
+a point to the helix and managing rewards associated with the voxels.
+
+Typical Usage Example:
+    helix_path = Path(helix_start=(0, 0, 0), voxel_size=1, max_distance=1)
+    helix_voxels, winning_voxels, rewards = helix_path.get_helix_voxels()
+    helix_data = helix_path.get_helix_data()
+
+This module is particularly useful in robotic applications where path following and navigation in
+three-dimensional space are essential, such as in robotic arms or autonomous drones navigating through
+prescribed paths.
+"""
 import numpy as np
 from math import cos, sin, pi, sqrt
 
 class Path:
-    def __init__(self, helix_start: (int, int, int) = (0, 0, 0), voxel_size: int = 1, max_distance: int = 1, generate_percentage_of_helix=1, generate_start=0):
+    """A class to represent and calculate the trajectory of a double helix-shaped path.
+
+    This class is designed to generate and manage a helix-shaped path, considering the helix's start point,
+    voxel size, and other helical parameters. It includes methods for calculating both the raw helix data
+    and the voxels that lie along the helix within a specified distance.
+
+    Attributes:
+        helix_start (tuple): Starting coordinates of the helix.
+        voxel_size (int): Size of each voxel in millimeters.
+        max_distance (int): Maximum distance from the helix path to consider for voxel generation.
+        par_space (int): Defines the parameter space of the helix.
+        percentage_of_helix (float): Percentage of the helix to generate voxels on.
+        start_of_voxels (float): Starting point on the helix for voxel generation.
+        resolution (int): Resolution of helix generation.
+        helix_scale (str): Scale of the helix ('dmm', 'mm', or 'cm').
+        helix_factor (int): Factor to adjust the helix scale.
+
+    Methods:
+        x(t): Calculates the x-coordinate of the helix at a given parameter t.
+        y(t): Calculates the y-coordinate of the helix at a given parameter t.
+        z(t): Calculates the z-coordinate of the helix at a given parameter t.
+        __calculate_nearest_distance(voxel, path): Calculates the nearest distance from a voxel to a path.
+        get_helix_voxels(): Generates voxels on or near the helix trajectory.
+        get_helix_data(): Returns raw helix data (coordinates) without voxel processing.
+    """
+    def __init__(self, helix_start: (int, int, int) = (0, 0, 0), voxel_size: int = 1,
+                 max_distance: int = 1, generate_percentage_of_helix=1, generate_start=0):
+        """Initialize the path with helix parameters.
+
+        :param helix_start: Starting coordinates of the helix.
+        :type helix_start: tuple of int
+
+        :param voxel_size: Size of each voxel in millimeters.
+        :type voxel_size: int
+
+        :param max_distance: Maximum distance from the helix path to consider for voxel generation.
+        :type max_distance: int
+
+        :param generate_percentage_of_helix: Percentage of the helix to generate voxels on.
+        :type generate_percentage_of_helix: float
+
+        :param generate_start: Starting point on the helix for voxel generation.
+        :type generate_start: float
+
+        :return: None
+        """
         # the helix expands in positive x, y and z direction
         # the y-expansion has negative values after half a turn ...
         self.helix_start = helix_start
@@ -32,15 +102,50 @@ class Path:
             self.helix_factor = 15
 
     def x(self, t: float):
+        """Calculate the x-coordinate of a point on the helix path at a given parameter.
+
+        :param t: A parameter that defines a specific point along the helix.
+        :type t: float
+
+        :return: The x-coordinate of the helix at parameter t.
+        :rtype: float
+        """
         return - 3 * self.helix_factor * cos((4 / self.par_space)*pi*t) + 3 * self.helix_factor + self.helix_start[0]
 
     def y(self, t: float):
+        """Calculate the y-coordinate of a point on the helix path at a given parameter.
+
+        :param t: A parameter that defines a specific point along the helix.
+        :type t: float
+
+        :return: The y-coordinate of the helix at parameter t.
+        :rtype: float
+        """
         return 3 * self.helix_factor * sin((4 / self.par_space)*pi*t) + self.helix_start[1]
 
     def z(self, t: float):
+        """Calculate the z-coordinate of a point on the helix path at a given parameter.
+
+        :param t: A parameter that defines a specific point along the helix.
+        :type t: float
+
+        :return: The z-coordinate of the helix at parameter t.
+        :rtype: float
+        """
         return t * 2 * self.helix_factor / self.par_space + self.helix_start[2]
 
     def __calculate_nearest_distance(self, voxel, path):
+        """Calculate the nearest distance from a given voxel to a specified path.
+
+        :param voxel: The coordinates of the voxel.
+        :type voxel: tuple of int
+
+        :param path: The set of points representing the path.
+        :type path: tuple of lists
+
+        :return: The minimum distance between the voxel and any point on the path.
+        :rtype: float
+        """
         min_distance = float('inf')
         voxel_x, voxel_y, voxel_z = voxel
 
@@ -50,9 +155,15 @@ class Path:
 
         return min_distance
 
-    # returns the coordinates of the center of all the voxels that are on the trajectory or
-    # within the max_distance starting with the helix_start voxel returns a list of tuples (x, y, z)
     def get_helix_voxels(self):
+        """Generate and return the voxels located on or near the helix path.
+
+        This method calculates the coordinates of the center of all voxels that are on the trajectory of the helix
+        or within a specified maximum distance, starting with the helix start voxel.
+
+        :return: A tuple containing the list of voxel coordinates, winning voxels, and their associated rewards.
+        :rtype: (list of tuples, list of tuples, list of int)
+        """
         #print(f"Calculating Helix Voxels")
         elements = []
         winning_voxels = []
@@ -117,8 +228,14 @@ class Path:
 
         return helix, winning_voxels, rewards
 
-    # returns raw helix data
     def get_helix_data(self):
+        """Retrieve the raw coordinate data of the helix path.
+
+        This method returns the raw data of the helix path in terms of x, y, and z coordinates without any voxel processing.
+
+        :return: A tuple of lists containing the x, y, and z coordinates of the helix.
+        :rtype: (list of float, list of float, list of float)
+        """
         x = []
         y = []
         z = []
