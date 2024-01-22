@@ -303,7 +303,7 @@ class Robot_Arm:
             return -np.pi
         return angle
 
-    def __limit_angles(self, angles: (float, float, float)) -> (float, float, float):
+    def __limit_angles(self, angles: (float, float, float, float, float, float)) -> (float, float, float, float, float,):
         """Limit all angles of the robot (in rad) to +-pi (+-180°).
 
         :param rad: Angles in radians
@@ -412,31 +412,31 @@ class Robot_Arm:
         mse = np.mean(squared_errors)
         return mse
 
-    def get_joint_angles_degrees(self) -> (float, float, float):
+    def get_joint_angles_degrees(self) -> (float, float, float, float, float,):
         """Return current joint angles in degrees.
 
         :return: Tuple with the current angles of the robot joints in degrees
-        :rtype: (float, float, float)
+        :rtype: (float, float, float, float, float,)
 
         :return: None
         """
         return np.array([self.__rad_to_deg(angle) for angle in self.rob.get_current_joint_config()])
 
-    def get_joint_angles_rad(self) -> (float, float, float):
+    def get_joint_angles_rad(self) -> (float, float, float, float, float,):
         """Return current joint angles in radians.
 
         :return: Tuple with the current angles of the robot joints in radians
-        :rtype: (float, float, float)
+        :rtype: (float, float, float, float, float,)
 
         :return: None
         """
         return self.rob.get_current_joint_config()
 
-    def set_joint_angles_degrees(self, angles: (float, float, float), save=False) -> None:
+    def set_joint_angles_degrees(self, angles: (float, float, float, float, float,), save=False) -> None:
         """Set joint angles in degrees.
 
         :param angles: Tuple with the angles for the robot joints in degrees
-        :type angles: (float, float, float)
+        :type angles: (float, float, float, float, float,)
 
         :return: None
         """
@@ -444,11 +444,11 @@ class Robot_Arm:
         angles_rad = np.array([self.__deg_to_rad(angle) for angle in angles])
         self.set_joint_angles_rad(angles_rad, save=save)
 
-    def set_joint_angles_rad(self, angles: (float, float, float), save=False, set_last_voxel=True) -> None:
+    def set_joint_angles_rad(self, angles: (float, float, float, float, float,), save=False, set_last_voxel=True) -> None:
         """Set joint angles in radians.
 
         :param angles: Tuple with the angles for the robot joints in radians
-        :type angles: (float, float, float)
+        :type angles: (float, float, float, float, float,)
 
         :return: None
         """
@@ -473,12 +473,12 @@ class Robot_Arm:
         self.out_of_bounds_counter = 0
         self.current_voxel = self.__get_tcp_voxel_position()
 
-    def get_random_action(self) -> ((float, float, float), int):
+    def get_random_action(self) -> ((float, float, float, float, float,), int):
         """Get a random action from all actions.
 
         :return: Tuple containing the action and the unique integer representing the action in the
                  actions dict
-        :rtype: ((float, float, float), int)
+        :rtype: ((float, float, float, float, float,), int)
         """
         x = np.random.randint(len(self.actions_dict))
         return self.actions_dict[x], x
@@ -581,14 +581,14 @@ class Robot_Arm:
         """
         return self.actions_dict
 
-    def get_action_from_dict(self, action: int) -> (float, float, float):
+    def get_action_from_dict(self, action: int) -> (float, float, float, float, float,):
         """Get action from the actions dict.
 
         :param action: Action index for the action dict
         :type action: int
 
         :return: Tuple with action
-        :rtype: (float, float, float)
+        :rtype: (float, float, float, float, float,)
         """
         return self.actions_dict[action]
 
@@ -646,7 +646,7 @@ class Robot_Arm:
         The position is given in terms of Cartesian coordinates (x, y, z) in the arm's workspace.
 
         :return: The coordinates of the end effector.
-        :rtype: tuple of (float, float, float)
+        :rtype: (float, float, float)
         """
         # Forward kinematics for TCP coordinate calculation
         tcp_matrix = self.rob.fkine()
@@ -970,7 +970,7 @@ class Robot_Arm:
 
         self.section_to_stitch += 1
 
-    def get_finishing_angles_rad(self, max_steps=2000) -> (str, (float, float, float)):
+    def get_finishing_angles_rad(self, max_steps=2000) -> (str, (float, float, float, float, float,)):
         """Determine the finishing angles of the robot arm based on the learned movements.
 
         This method navigates the robot arm through its environment based on the highest Q-values obtained
@@ -983,7 +983,7 @@ class Robot_Arm:
 
         :return: A tuple containing the final status of the navigation ('Success', 'Out of bounds', or 'Infinite Loop')
                  and the final joint angles of the robot arm in radians.
-        :rtype: (str, (float, float, float))
+        :rtype: (str, (float, float, float, float, float,))
 
         Note: The method resets the robot arm to its starting position before beginning the navigation process.
         """
@@ -1053,7 +1053,7 @@ class Robot_Arm:
 
         return total_mse
 
-    def set_starting_angles_rad(self, angles=(float, float, float)):
+    def set_starting_angles_rad(self, angles=(float, float, float, float, float,)):
         """Set the starting joint angles of the robotic arm in radians.
 
         This method configures the starting joint angles of the robotic arm. The angles are specified in radians

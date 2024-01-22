@@ -49,6 +49,16 @@ import threading
 # suppress scientific notation
 np.set_printoptions(suppress=True)
 
+# number of axis used by the robot arm. Either 3 or 6
+num_axis = 3
+
+# total number of sections to be learned
+num_sections = 32
+# section the parallel learning should start in
+section_start = 0
+# number of sections that should be learned
+learn_sections = 32
+
 def debug_pause(string_to_print=None):
     """
     Pause the program execution and optionally print a message.
@@ -571,44 +581,40 @@ def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=32, use_le
     # Kill monitoring thread
     monitor_thread.join()
 
+def main():
+    # Number of episodes per section
+    num_episodes = 10000
+    alpha = 0.1
+    gamma = 0.99
+    epsilon = 0.1
 
-starting_time = time.time()
+    starting_time = time.time()
 
-# Number of episodes per section
-num_episodes = 10000
-alpha = 0.1
-gamma = 0.99
-epsilon = 0.1
+    learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=True)
 
-# Number of axis used by the robot arm. Either 3 or 6
-num_axis = 3
+    print("\n\n    Parallel learning done, now going sequentially through each section and stitching them together.\n")
 
-num_sections = 32
-section_start = 0
-learn_sections = 32
+    num_episodes = 20
+    alpha = 0.01
+    finishing_angles = None
 
-learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=True)
+    for i in range(learn_sections):
+        finishing_angles = learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True,
+                                 max_num_cycles=100, draw_robot=False, starting_pos=finishing_angles,
+                                 save_plot=False)
 
-print("\n\n    Parallel learning done, now going sequentially through each section and stitching them together.\n")
+    total_time = time.time()-starting_time
 
-num_episodes = 20
-alpha = 0.01
-finishing_angles = None
+    arm = bot.Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=2, num_axis=num_axis)
+    arm.load_learned_from_file()
 
-for i in range(learn_sections):
-    finishing_angles = learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True,
-                             max_num_cycles=100, draw_robot=False, starting_pos=finishing_angles,
-                             save_plot=False)
+    for i in range(learn_sections-1):
+        arm.stitch_from_file()
 
-total_time = time.time()-starting_time
+    print(f"MSE: {arm.calc_mse(support_points=1500)} (only correct when learning the whole helix)")
+    arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
+    arm.show(draw_path=True, draw_voxels=False, zoom_path=True, draw_q_path=True)
+    print(f"Total time: {total_time} seconds")
 
-arm = bot.Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=2, num_axis=num_axis)
-arm.load_learned_from_file()
-
-for i in range(learn_sections-1):
-    arm.stitch_from_file()
-
-print(f"MSE: {arm.calc_mse(support_points=1500)} (only correct when learning the whole helix)")
-arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
-arm.show(draw_path=True, draw_voxels=False, zoom_path=True, draw_q_path=True)
-print(f"Total time: {total_time} seconds")
+if __name__ == "__main__":
+    main()
