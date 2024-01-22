@@ -90,22 +90,12 @@ class Path:
                         else:
                             # Non winning voxel
                             voxel = (x + k, y + j, z + l)
-                            # Calculate reward based on distance along helix and closeness to helix
-                            distance = round(self.__calculate_nearest_distance(voxel, path)) / 3
-                            #input(f"{voxel} distance: {distance}")
                             # Add Voxel with reward
-                            #elements.append(((x + k, y + j, z + l), current_reward-distance))
                             elements.append(((x + k, y + j, z + l), current_reward))
 
             current_reward += 1 / self.resolution
-            #current_reward = -1
-            #if ((((i/self.resolution) + 0.01) * 100) % 5) == 0:
-            #    print(f"Process: {int((i/self.resolution)*100)}%\r", end='')
-
-        #print(f"Process: 100%")
 
         # Sort out dual winning voxels
-        #print("Removing double elements ")
         winning_voxels = list(dict.fromkeys(winning_voxels))
 
         helix = []
@@ -115,7 +105,6 @@ class Path:
 
         for i, element in enumerate(elements):
             coords, reward = element
-            #print(f"\rProcess: {int((i/len(elements))*100)}%\r", end='')
             if coords not in seen:
                 # Dont add if we did not generate voxels at start of helix and the voxel is at the start of the helix
                 # This mitigates a bug, where it will always generate a voxel at the start of the helix
@@ -126,15 +115,6 @@ class Path:
                         rewards.append(0)
                     else:
                         rewards.append(reward)
-
-        #print(f"Process: 100%")
-
-        #for coords, reward in zip(helix, rewards):
-        #    print(f"Reward for {coords}, {reward}")
-        #    if(coords in winning_voxels):
-        #        print(f"In winning voxels!")
-
-        #print(f"winning voxels: {winning_voxels}")
 
         return helix, winning_voxels, rewards
 
@@ -152,35 +132,3 @@ class Path:
 
 
         return (x, y, z)
-
-
-# example usage with plot
-"""
-helix = Path(helix_start=(0, 0, 0), voxel_size=1, max_distance=2)
-
-helix_voxels = helix.get_helix_voxels()
-
-# print the helix voxels as scatter plot with small dots
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-
-x = []
-y = []
-z = []
-
-for voxel in helix_voxels:
-    x.append(voxel[0])
-    y.append(voxel[1])
-    z.append(voxel[2])
-
-ax.scatter(x, y, z, marker=".", s=1)
-
-ax.set_xlabel('X Label')
-ax.set_ylabel('Y Label')
-ax.set_zlabel('Z Label')
-
-plt.show()
-"""

@@ -3,8 +3,7 @@ import matplotlib.pyplot as plt
 import sys
 import time
 sys.path.append('./environment')
-import Six_Axis_Robot_Arm as bot
-#import Three_Axis_Robot_Arm as bot
+import Robot_Arm as bot
 import gc
 import multiprocessing
 import threading
@@ -248,7 +247,7 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
           stitch=False, max_num_cycles=5, stitch_section=1, use_norm_rewarding=False, draw_robot=False,
           starting_pos=None, save_plot=True):
     # Learn section and save to file
-    arm = bot.Six_Axis_Robot_Arm(section_length=section_length, helix_section=section, voxel_volume=2, stitch_section=1, use_norm_rewarding=use_norm_rewarding)
+    arm = bot.Robot_Arm(section_length=section_length, helix_section=section, voxel_volume=2, num_axis=num_axis)
 
     if load is True:
         arm.load_learned_from_file()
@@ -295,9 +294,9 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
             break
 
     if stitch is False:
-        arm.save_learned_to_file(recalculate_rewards=False)
+        arm.save_learned_to_file()
     else:
-        arm.save_learned_to_file(recalculate_rewards=False)
+        arm.save_learned_to_file()
 
     if save_plot is True:
         fig, ax = plt.subplots(figsize=(10, 10))
@@ -333,7 +332,6 @@ def print_sections(num_sections):
     for i in range(num_sections):
         print(f"=====", end="")
     print("\nCycle  |\nEpisode|", end="\r")
-
 
 def monitor_queue(total_num_sections, queue):
     iteration = 0
@@ -428,9 +426,7 @@ np.set_printoptions(threshold=np.inf)
 
 
 #learn(1/num_sections, 1, num_episodes, alpha, gamma, epsilon, load=False, max_num_cycles=5, use_norm_rewarding=False)
-num_sections=32
-section_start=0
-learn_sections=32
+
 
 # Learn section and save to file
 #arm = bot.Six_Axis_Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=2, stitch_section=1, use_norm_rewarding=False)
@@ -454,6 +450,15 @@ learn_sections=32
 #arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
 #arm.stitch_from_file()
 
+# Number of axis used by the robot arm
+num_axis = 6
+
+num_sections=32
+section_start=0
+learn_sections=32
+
+learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=False, stitch_section=1, max_num_cycles=100, use_norm_rewarding=False, draw_robot=True, starting_pos=None, save_plot=False)
+
 learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=True)
 
 num_episodes = 20
@@ -465,7 +470,7 @@ for i in range(num_sections):
 
 total_time = time.time()-starting_time
 
-arm = bot.Six_Axis_Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=2, stitch_section=1, use_norm_rewarding=False)
+arm = bot.Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=2, num_axis=num_axis)
 arm.load_learned_from_file()
 
 for i in range(num_sections):
