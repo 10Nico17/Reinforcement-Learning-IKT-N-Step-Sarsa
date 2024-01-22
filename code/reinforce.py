@@ -32,20 +32,23 @@ def get_action_epsilon_greedy(robot, epsilon: float = 0.1, verbosity_level=0) ->
     if np.random.uniform(0, 1) < epsilon:
         # Explore: select a random action
         action = robot.get_random_action()
-        if verbosity_level >= 2: print(f"  Explore with action: {action}")
+        if verbosity_level >= 2:
+            print(f"  Explore with action: {action}")
         return action
     else:
         # Exploit: select the best action based on current Q-values
         current_qs = robot.get_current_qs()
         action = np.argmax(current_qs)
         action_tuple = (robot.get_action_from_dict(action), action)
-        if verbosity_level >= 2: print(f"  Exploiting with action: {action_tuple}")
+        if verbosity_level >= 2:
+            print(f"  Exploiting with action: {action_tuple}")
         return action_tuple
 
-def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbosity_level=0, queue=None, section=None, episode_start=0):
+def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbosity_level=0,
+                 queue=None, section=None, episode_start=0):
 
     # Assume robot is initialized
-    n=5
+    n = 5
     episode_lengths = []
     last_queue_update = 0
 
@@ -60,15 +63,17 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
         # Initialize the starting state S (choosing from the starting positions)
         robot.reset()
 
-        if verbosity_level >= 2: print(f"Robot initialized, starting SARSA, Starting angles: {robot.get_joint_angles_rad()}, Starting position: {robot.rob.end_effector_position()} Choosing action!")
-        if verbosity_level >= 2: print(f"   Initial Qs for starting_voxel:\n{robot.Q[robot.voxels_index_dict[(-500, 0, 0)]]}")
+        if verbosity_level >= 2:
+            print(f"Robot initialized, starting SARSA, Starting angles: {robot.get_joint_angles_rad()}, Starting position: {robot.rob.end_effector_position()} Choosing action!")
+            print(f"   Initial Qs for starting_voxel:\n{robot.Q[robot.voxels_index_dict[(-500, 0, 0)]]}")
 
         current_state = robot.get_tcp()
 
         # Choose the first action A from S using Q (epsilon-greedy)
         current_action, current_action_index = get_action_epsilon_greedy(robot, epsilon, verbosity_level=verbosity_level)
-        if verbosity_level >= 2: print('current_action: ', current_action)
-        if verbosity_level >= 2: print('current_action_index: ', current_action_index)
+        if verbosity_level >= 2:
+            print('current_action: ', current_action)
+            print('current_action_index: ', current_action_index)
 
         # Loop for each step of the episode
         done = False
@@ -83,7 +88,7 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
         actions.append(current_action)
         actions_index.append(current_action_index)
 
-        G=0
+        G = 0
         best_reward = -100
 
         # Send information into queue
@@ -94,20 +99,22 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
                 last_queue_update = time.time()
 
         while not done:
-            if verbosity_level >= 2: print(f"\nNew loop, iteration = {i}, current Voxel: {robot.current_voxel}")
-            if verbosity_level >= 2: debug_pause(f" Qs for current Voxel:\n {robot.Q[robot.voxels_index_dict[robot.current_voxel]]}")
+            if verbosity_level >= 2:
+                print(f"\nNew loop, iteration = {i}, current Voxel: {robot.current_voxel}")
+                debug_pause(f" Qs for current Voxel:\n {robot.Q[robot.voxels_index_dict[robot.current_voxel]]}")
 
             # Save Q
             last_q = robot.get_current_q(actions_index[0])
-            if verbosity_level >= 2: print(f"  Q for current action {current_action} with index {current_action_index} at voxel {robot.current_voxel}: {last_q}. Doing SAR")
-
+            if verbosity_level >= 2:
+                print(f"  Q for current action {current_action} with index {current_action_index} at voxel {robot.current_voxel}: {last_q}. Doing SAR")
 
             # Take action A, observe R, S'
             new_pos, reward, done = robot.do_move(current_action_index)
 
+            if verbosity_level >= 2:
+                print(f"  New position: {new_pos}, reward: {reward}, new Voxel: {robot.current_voxel}. Doing SA")
+                print(f"  Qs for new position:\n{robot.Q[robot.voxels_index_dict[robot.current_voxel]]}")
 
-            if verbosity_level >= 2: print(f"  New position: {new_pos}, reward: {reward}, new Voxel: {robot.current_voxel}. Doing SA")
-            if verbosity_level >= 2: print(f"  Qs for new position:\n{robot.Q[robot.voxels_index_dict[robot.current_voxel]]}")
             if reward > best_reward:
                 best_reward = reward
 
@@ -119,8 +126,7 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
             actions.append(new_action)
             actions_index.append(new_action_index)
 
-
-            if(len(rewards)==n):
+            if (len(rewards) == n):
                 # calculate n-step reward
                 for rew in range(len(rewards)-1):
                     G += (gamma**rew)*rewards[rew]
@@ -135,64 +141,51 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
 
                 robot.set_last_n_q(actions_index[0], last_n_q)
 
-
-                #if verbosity_level >= 2: print(f"  Updated Q value: {new_q}")
                 # only store the last n iterations
-                del(rewards[0])
-                del(states[0])
-                del(actions[0])
-                del(actions_index[0])
+                del (rewards[0])
+                del (states[0])
+                del (actions[0])
+                del (actions_index[0])
 
-
-            if verbosity_level >= 2: print(f"  Updated Qs for last Voxel:\n{robot.Q[robot.voxels_index_dict[robot.last_voxel]]}")
+            if verbosity_level >= 2:
+                print(f"  Updated Qs for last Voxel:\n{robot.Q[robot.voxels_index_dict[robot.last_voxel]]}")
             # S <- S' <- done in robot.do_move(); A <- A'
             current_action_index = new_action_index
             current_action = new_action
 
             i += 1
-            G=0
+            G = 0
 
             if (i % 10000 == 0) and verbosity_level >= 1:
                 print(f"    Current_iteration {i} in episode {episode}, current_pos {new_pos}, Out of bounds: {robot.out_of_bounds_counter}")
                 print(f"    Move / out of bound ratio: {robot.out_of_bounds_counter/i}, best reward: {best_reward}")
-                #print(f"Percentage of track done in furthest move: {round((best_reward + 1)*100, 3)}%")
                 print(f"    alpha = {alpha} gamma = {gamma} epsilon = {epsilon}")
-                #robot.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
         end_time = time.time()
         episode_lengths.append(i)
-        if verbosity_level >= 1: print(f"    Episode {episode} ended with length {i}. Time for eposiode: {end_time-start_time} s.  Alpha = {alpha}                            ",
+        if verbosity_level >= 1:
+            print(f"    Episode {episode} ended with length {i}. Time for eposiode: {end_time-start_time} s.  Alpha = {alpha}                            ",
                                        end='\r')
         algo = 'sarsa_n_step'
 
-    if verbosity_level >= 1: print(f"")
+    if verbosity_level >= 1:
+        print(f"")
     return episode_lengths, algo, alpha
 
 def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queue=None, load=False,
-          stitch=False, max_num_cycles=5, stitch_section=1, use_norm_rewarding=False, draw_robot=False,
-          starting_pos=None, save_plot=True):
+          max_num_cycles=5, draw_robot=False, starting_pos=None, save_plot=True):
     # Learn section and save to file
-    arm = bot.Robot_Arm(section_length=section_length, helix_section=section, voxel_volume=2, num_axis=num_axis)
+    arm = bot.Robot_Arm(section_length=section_length, helix_section=section,
+                        voxel_volume=2, num_axis=num_axis)
 
     if load is True:
         arm.load_learned_from_file()
-
-    if stitch is True:
-        if stitch_section == "all":
-            total_sections = int(1/section_length)
-            for i in range(total_sections):
-                arm.stitch_from_file()
-        else:
-            arm.stitch_from_file()
 
     if starting_pos is not None:
         arm.set_starting_angles_rad(starting_pos)
 
     if queue is None and draw_robot is True:
         arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
-
-    #if queue is None:
-    #    arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
 
     # Learn until the Q values lead the arm into the finish
     episode_lengths = []
@@ -203,7 +196,9 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
         else:
             print(f"section: {section}, cycle {cycle}")
             sarsa_verbosity_level = 1
-        eps, _, alpha = n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon, verbosity_level=sarsa_verbosity_level, queue=queue, section=section, episode_start=(cycle*min_num_episodes))
+        eps, _, alpha = n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon,
+                                     verbosity_level=sarsa_verbosity_level, queue=queue,
+                                     section=section, episode_start=(cycle*min_num_episodes))
         episode_lengths = episode_lengths + eps
         finishing_angles_last_section = arm.get_finishing_angles_rad()
         if (finishing_angles_last_section[0] == "Success") or (cycle == max_num_cycles-1):
@@ -213,10 +208,7 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
                 print(f"    section: {section}, cycle {cycle}, DONE!")
             break
 
-    if stitch is False:
-        arm.save_learned_to_file()
-    else:
-        arm.save_learned_to_file()
+    arm.save_learned_to_file()
 
     if save_plot is True:
         fig, ax = plt.subplots(figsize=(10, 10))
@@ -230,7 +222,7 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
     if queue is None and len(episode_lengths) > 0:
         print(f"    average length of the last 100 episodes: {np.average(episode_lengths[-100:len(episode_lengths)])}")
         print(f"    last 10 episode lengths: {episode_lengths[-10:len(episode_lengths)]}\n")
-    #plt.show()
+
     if draw_robot is True:
         arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
 
@@ -280,7 +272,7 @@ def monitor_queue(total_num_sections, queue):
                 print_sections(total_num_sections)
         time.sleep(0.05)
 
-def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=64, use_learned=False):
+def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=32, use_learned=False):
     print("\nLearning in Parallel")
 
     processes = []
@@ -297,8 +289,6 @@ def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=64, use_le
     monitor_thread = threading.Thread(target=monitor_queue, args=(learn_sections, queue,))
     monitor_thread.start()
 
-    stitch = False
-    use_norm_rewarding=True
     show_robot = False
     max_num_cycles=10
 
@@ -308,14 +298,15 @@ def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=64, use_le
     num_processes = total_sections
 
     for i in range(section_start, section_start+learn_sections):
-        p = multiprocessing.Process(target=learn, args=(section_length, i, num_episodes, alpha, gamma, epsilon, queue, use_learned, False, max_num_cycles, 1, False, False))
+        args = (section_length, i, num_episodes, alpha, gamma, epsilon, queue, use_learned, max_num_cycles, show_robot, None, True)
+        p = multiprocessing.Process(target=learn, args=args)
         p.start()
         processes.append(p)
         time.sleep(0.2)
 
     # Wait for all processes to finish
     all_processes_done = False
-    while all_processes_done == False:
+    while all_processes_done is False:
         all_processes_done = True
         delete_processes = []
         for p in processes:
@@ -340,13 +331,11 @@ epsilon = 0.1
 # Number of axis used by the robot arm. Either 3 or 6
 num_axis = 3
 
-num_sections=32
-section_start=0
-learn_sections=4
+num_sections = 32
+section_start = 0
+learn_sections = 32
 
-#learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, stitch=False, stitch_section=1, max_num_cycles=100, use_norm_rewarding=False, draw_robot=True, starting_pos=None, save_plot=False)
-
-learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=True)
+#learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=True)
 
 print("\n\n    Parallel learning done, now going sequentially through each section and stitching them together.\n")
 
@@ -355,7 +344,9 @@ alpha = 0.01
 finishing_angles = None
 
 for i in range(learn_sections):
-    finishing_angles = learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True, stitch=False, stitch_section=1, max_num_cycles=100, use_norm_rewarding=False, draw_robot=False, starting_pos=finishing_angles, save_plot=False)
+    finishing_angles = learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True,
+                             max_num_cycles=100, draw_robot=False, starting_pos=finishing_angles,
+                             save_plot=False)
 
 total_time = time.time()-starting_time
 
