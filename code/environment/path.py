@@ -1,7 +1,6 @@
 import numpy as np
 from math import cos, sin, pi, sqrt
 
-
 class Path:
     def __init__(self, helix_start: (int, int, int) = (0, 0, 0), voxel_size: int = 1, max_distance: int = 1, generate_percentage_of_helix=1, generate_start=0):
         # the helix expands in positive x, y and z direction
