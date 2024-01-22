@@ -13,6 +13,7 @@ from path_short import Path_Short
 import itertools
 import ujson
 import math
+from scipy.interpolate import interp1d
 
 # suppress scientific notation
 np.set_printoptions(suppress=True)
@@ -98,7 +99,7 @@ class Six_Axis_Robot_Arm:
         joint_actions_deg = [-0.1, 0, 0.1]
         joint_actions_rad = np.array([self.__deg_to_rad(action) for action in joint_actions_deg])
 
-        # Generate all possible action combinations for the 3 joints
+        # Generate all possible action combinations for the 6 joints
         action_combinations = list(itertools.product(joint_actions_rad, repeat=6))
         total_amount_actions = len(action_combinations)
 
@@ -181,6 +182,9 @@ class Six_Axis_Robot_Arm:
             self.Q[0][self.voxels_index_dict[0][winning_voxel]] = np.zeros(total_amount_actions)
 
         self.move_along_q_in_section = 0
+
+        self.q_path = [[starting_pos[0]], [starting_pos[1]], [starting_pos[2]]]
+        self.starting_pos = starting_pos
         # Calculate the rewards based on the position of the robot in each voxel
         #self.__calc_rewards()
 
@@ -326,6 +330,31 @@ class Six_Axis_Robot_Arm:
                 self.rewards[index] = self.max_reward+0.4
         #print(self.rewards)
         #self.show(draw_path=True, draw_voxels=True, zoom_path=True)
+
+    def __interpolate_path(self, x, y, z, new_length):
+        # Create an array of indices
+        old_indices = np.linspace(0, 1, num=len(x))
+        new_indices = np.linspace(0, 1, num=new_length)
+
+        # Interpolate each dimension
+        f_x = interp1d(old_indices, x, kind='linear')
+        f_y = interp1d(old_indices, y, kind='linear')
+        f_z = interp1d(old_indices, z, kind='linear')
+
+        # Generate the new path
+        new_x = f_x(new_indices)
+        new_y = f_y(new_indices)
+        new_z = f_z(new_indices)
+
+        return new_x, new_y, new_z
+
+    def __mean_squared_error(self, path_1, path_2, support_points=1000):
+        # Calculate squared errors
+        squared_errors = (path_1 - path_2) ** 2
+
+        # Calculate mean squared error
+        mse = np.mean(squared_errors)
+        return mse
 
     def get_joint_angles(self) -> (float, float, float):
         """Return current joint angles.
@@ -564,7 +593,7 @@ class Six_Axis_Robot_Arm:
         tcp_coordinates = (tcp_matrix[0, 3], tcp_matrix[1, 3], tcp_matrix[2, 3])
         return tcp_coordinates
 
-    def animate_move_along_q_values(self, draw_path=False, draw_voxels=False, zoom_path=False, fps=20, max_steps=1000):
+    def animate_move_along_q_values(self, draw_path=False, draw_voxels=False, zoom_path=False, fps=20, max_steps=2000):
         """Move the robot along the learned Q values and animate it.
 
         Will stop when running out of bounds.
@@ -628,7 +657,7 @@ class Six_Axis_Robot_Arm:
         # Animate
         self.animate(draw_path=draw_path, draw_voxels=draw_voxels, zoom_path=zoom_path, fps=20)
 
-    def show(self, draw_path=False, draw_voxels=False, zoom_path=False) -> None:
+    def show(self, draw_path=False, draw_voxels=False, zoom_path=False, draw_q_path=False) -> None:
         """Open window and draw robot arm.
 
         :param draw_path: Draw the path the robot is supposed to learn
@@ -642,6 +671,9 @@ class Six_Axis_Robot_Arm:
 
         :return: None
         """
+        if draw_q_path is True:
+            self.get_finishing_angles_rad()
+
         if zoom_path is False:
             ax = self.env.plot(show=False)
         else:
@@ -654,6 +686,9 @@ class Six_Axis_Robot_Arm:
         if draw_path is True:
             ax.plot(self.path[0], self.path[1], self.path[2], color='red')
 
+        if draw_q_path is True:
+            ax.plot(self.q_path[0], self.q_path[1], self.q_path[2], color='green')
+
         if draw_voxels is True:
             x = []
             y = []
@@ -662,16 +697,16 @@ class Six_Axis_Robot_Arm:
                 x.append(voxel[0])
                 y.append(voxel[1])
                 z.append(voxel[2])
-            ax.scatter(x, y, z, marker=".", s=2, cmap=plt.get_cmap('winter'), c=self.rewards)
+            ax.scatter(x, y, z, marker=".", s=2, c='aqua')
 
-            x = []
-            y = []
-            z = []
-            for voxel in self.winning_voxels[0]:
-                x.append(voxel[0])
-                y.append(voxel[1])
-                z.append(voxel[2])
-            ax.scatter(x, y, z, marker=".", s=2.5, color='red')
+            #x = []
+            #y = []
+            #z = []
+            #for voxel in self.winning_voxels[0]:
+            #    x.append(voxel[0])
+            #    y.append(voxel[1])
+            #    z.append(voxel[2])
+            #ax.scatter(x, y, z, marker=".", s=2.5, color='red')
 
         plt.show()
 
@@ -702,7 +737,7 @@ class Six_Axis_Robot_Arm:
         :return: None
         """
         if zoom_path is False:
-            if draw_voxels is False:
+            if draw_path is False:
                 if draw_voxels is False:
                     self.env.animate(fps=fps, save_path=save_path)
                 else:
@@ -716,7 +751,7 @@ class Six_Axis_Robot_Arm:
                                      winning_voxels=self.winning_voxels[self.section_to_stitch-1],
                                      fps=fps, save_path=save_path)
         else:
-            if draw_voxels is False:
+            if draw_path is False:
                 if draw_voxels is False:
                     self.env.animate(xlim=[np.min(self.path[0])-10, np.max(self.path[0])+10],
                                      ylim=[np.min(self.path[1])-10, np.max(self.path[1])+10],
@@ -730,9 +765,9 @@ class Six_Axis_Robot_Arm:
                                      fps=fps, save_path=save_path)
             else:
                 if draw_voxels is False:
-                    self.env.animate(xlim=[np.min(self.path[0])-10, np.max(self.path[0])+10],
-                                     ylim=[np.min(self.path[1])-10, np.max(self.path[1])+10],
-                                     zlim=[np.min(self.path[2])-10, np.max(self.path[2])+10],
+                    self.env.animate(xlim=[-550, 10],
+                                     ylim=[-255, 255],
+                                     zlim=[0, 200],
                                      path=self.path, fps=fps, save_path=save_path)
                 else:
                     self.env.animate(xlim=[np.min(self.path[0])-10, np.max(self.path[0])+10],
@@ -955,7 +990,7 @@ class Six_Axis_Robot_Arm:
         self.section_to_stitch += 1
 
 
-    def get_finishing_angles_rad(self, max_steps=1000) -> (str, (float, float, float)):
+    def get_finishing_angles_rad(self, max_steps=2000) -> (str, (float, float, float)):
         # Reset robot to starting position
         self.reset()
 
@@ -963,6 +998,7 @@ class Six_Axis_Robot_Arm:
         done = False
         return_string = "Success"
         i = 0
+        self.q_path = [[self.starting_pos[0]], [self.starting_pos[1]], [self.starting_pos[2]]]
         while not done:
             # Get the current Qs and search for the highest Q
             action = np.argmax(self.get_current_qs())
@@ -970,17 +1006,41 @@ class Six_Axis_Robot_Arm:
             new_angles = self.rob.get_current_joint_config() + self.actions_dict[action]
             # Move robot into new position
             self.set_joint_angles_rad(new_angles)
+            tcp = self.get_tcp()
+            self.q_path[0].append(tcp[0])
+            self.q_path[1].append(tcp[1])
+            self.q_path[2].append(tcp[2])
             # Check for boundaries, check for win, check if max steps are reached max steps
-            in_voxels = self.__check_in_voxels() is True
-            in_win = self.__check_win() is True
+            in_voxels = self.__check_in_voxels()
+            in_win = self.__check_win()
             if (not in_voxels) or (in_win) or (i > max_steps):
                 if not in_voxels: return_string = "Out of bounds"
                 if i > max_steps: return_string = "Infinite Loop"
                 done = True
+                if in_win is True:
+                    if len(self.winning_voxels)-1 != self.move_along_q_in_section:
+                        done = False
+                        self.move_along_q_in_section += 1
             i += 1
+
+        self.move_along_q_in_section = 0
 
         return return_string, tuple(self.get_joint_angles_rad())
 
+    def calc_mse(self, support_points=1000):
+        self.get_finishing_angles_rad()
+        path_x, path_y, path_z = self.__interpolate_path(self.path[0], self.path[1], self.path[2], support_points)
+        q_path_x, q_path_y, q_path_z = self.__interpolate_path(self.q_path[0], self.q_path[1], self.q_path[2], support_points)
+
+        # Calculate MSE after converting paths to arrays
+        mse_x = self.__mean_squared_error(path_x, q_path_x)
+        mse_y = self.__mean_squared_error(path_y, q_path_y)
+        mse_z = self.__mean_squared_error(path_z, q_path_z)
+
+        # Combine the MSE for each dimension
+        total_mse = (mse_x + mse_y + mse_z) / 3
+
+        return total_mse
 
     def set_starting_angles_rad(self, angles=(float, float, float)):
 

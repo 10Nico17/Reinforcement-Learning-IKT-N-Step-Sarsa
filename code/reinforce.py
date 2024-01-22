@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import sys
 import time
 sys.path.append('./environment')
-#import Six_Axis_Robot_Arm as bot
-import Three_Axis_Robot_Arm as bot
+import Six_Axis_Robot_Arm as bot
+#import Three_Axis_Robot_Arm as bot
 import gc
 import multiprocessing
 import threading
@@ -248,7 +248,7 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
           stitch=False, max_num_cycles=5, stitch_section=1, use_norm_rewarding=False, draw_robot=False,
           starting_pos=None, save_plot=True):
     # Learn section and save to file
-    arm = bot.Three_Axis_Robot_Arm(section_length=section_length, helix_section=section, voxel_volume=2, stitch_section=1, use_norm_rewarding=use_norm_rewarding)
+    arm = bot.Six_Axis_Robot_Arm(section_length=section_length, helix_section=section, voxel_volume=2, stitch_section=1, use_norm_rewarding=use_norm_rewarding)
 
     if load is True:
         arm.load_learned_from_file()
@@ -423,13 +423,6 @@ epsilon = 0.1
 np.set_printoptions(threshold=np.inf)
 
 # Learn section and save to file
-#arm = bot.Three_Axis_Robot_Arm(section_length=1/64, helix_section=1, voxel_volume=1, stitch_section=1, use_norm_rewarding=True)
-#
-#arm.load_learned_from_file()
-#arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
-#arm.stitch_from_file()
-
-# Learn section and save to file
 
 #learn(1/num_sections, 0, num_episodes, alpha, gamma, epsilon, load=True, max_num_cycles=5)
 
@@ -439,11 +432,32 @@ num_sections=32
 section_start=0
 learn_sections=32
 
+# Learn section and save to file
+#arm = bot.Six_Axis_Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=2, stitch_section=1, use_norm_rewarding=False)
+#
+#arm.load_learned_from_file()
+#finishing_angles_last_section = arm.get_finishing_angles_rad()
+#arm.show(draw_path=True, draw_voxels=True, zoom_path=True, draw_q_path=False)
+#
+#arm = bot.Six_Axis_Robot_Arm(section_length=1/num_sections, helix_section=1, voxel_volume=2, stitch_section=1, use_norm_rewarding=False)
+#
+#arm.load_learned_from_file()
+#arm.reset()
+#arm.show(draw_path=True, draw_voxels=True, zoom_path=True, draw_q_path=False)
+#finishing_angles_last_section = arm.get_finishing_angles_rad()
+#arm.show(draw_path=True, draw_voxels=True, zoom_path=True, draw_q_path=False)
+#
+#arm = bot.Six_Axis_Robot_Arm(section_length=1/num_sections, helix_section=2, voxel_volume=2, stitch_section=1, use_norm_rewarding=False)
+#
+#arm.load_learned_from_file()
+#arm.show(draw_path=True, draw_voxels=True, zoom_path=True, draw_q_path=False)
+#arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
+#arm.stitch_from_file()
+
 learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=True)
 
 num_episodes = 20
 alpha = 0.01
-
 finishing_angles = None
 
 for i in range(num_sections):
@@ -451,13 +465,13 @@ for i in range(num_sections):
 
 total_time = time.time()-starting_time
 
-arm = bot.Three_Axis_Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=2, stitch_section=1, use_norm_rewarding=False)
+arm = bot.Six_Axis_Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=2, stitch_section=1, use_norm_rewarding=False)
 arm.load_learned_from_file()
+
 for i in range(num_sections):
     arm.stitch_from_file()
 
 print(f"MSE: {arm.calc_mse(support_points=1500)}")
-#arm.animate_move_along_q_values(draw_path=True, draw_voxels=True, zoom_path=True)
+arm.animate_move_along_q_values(draw_path=True, draw_voxels=False, zoom_path=True)
 arm.show(draw_path=True, draw_voxels=False, zoom_path=True, draw_q_path=True)
-
 print(f"Total time: {total_time} seconds")
