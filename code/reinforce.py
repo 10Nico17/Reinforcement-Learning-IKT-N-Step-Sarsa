@@ -66,12 +66,11 @@ def debug_pause(string_to_print=None):
     This function pauses the execution of the program until the user presses Enter.
     It can optionally print a message before pausing.
 
-    :param string_to_print: A string message to be printed before pausing.
-                            If None, no message is printed.
-    :type string_to_print: str, optional
+    Args:
+      string_to_print (str, optional): A string message to be printed before pausing. Default is None.
 
-    :return: None
-    :rtype: NoneType
+    Returns:
+      None
     """
     if string_to_print is not None:
         print(string_to_print)
@@ -86,19 +85,13 @@ def get_action_epsilon_greedy(robot, epsilon: float = 0.1, verbosity_level=0) ->
     epsilon value provided. If exploring, a random action is chosen. If exploiting, the best action
     based on current Q-values is selected.
 
-    :param robot: The robot on which the action is to be performed.
-    :type robot: Six_Axis_Robot_Arm object
+    Args:
+      robot (Six_Axis_Robot_Arm object): The robot on which the action is to be performed.
+      epsilon (float): The probability of choosing to explore rather than exploit. Default is 0.1.
+      verbosity_level (int): Level of verbosity for output messages. Default is 0.
 
-    :param epsilon: The probability of choosing to explore rather than exploit.
-                    It ranges from 0 (always exploit) to 1 (always explore).
-    :type epsilon: float
-
-    :param verbosity_level: Level of verbosity for output messages.
-                            Higher values produce more detailed output.
-    :type verbosity_level: int
-
-    :return: A tuple containing the action in the format of six float values and the action index.
-    :rtype: (tuple of float, int)
+    Returns:
+      tuple: A tuple containing the action in the format of six float values and the action index.
     """
     if np.random.uniform(0, 1) < epsilon:
         # Explore: select a random action
@@ -125,35 +118,19 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
     also allows for dynamic adjustment of the learning rate alpha and supports message passing through
     a queue for parallel execution.
 
-    :param robot: The robot object to apply the n-step SARSA algorithm on.
-    :type robot: Robot_Arm object
+    Args:
+      robot (Six_Axis_Robot_Arm object): The robot object to apply the n-step SARSA algorithm on.
+      num_episodes (int): The number of episodes to run the algorithm.
+      alpha (float): The learning rate. Default is 0.1.
+      gamma (float): The discount factor. Default is 0.99.
+      epsilon (float): The exploration probability. Default is 0.1.
+      verbosity_level (int): Level of verbosity for output messages. Default is 0.
+      queue (Queue, optional): A queue object for inter-process communication. Default is None.
+      section (any): The section or segment of the task being processed. Default is None.
+      episode_start (int): The starting episode number. Default is 0.
 
-    :param num_episodes: The number of episodes to run the algorithm.
-    :type num_episodes: int
-
-    :param alpha: The learning rate (0 < alpha <= 1).
-    :type alpha: float
-
-    :param gamma: The discount factor (0 < gamma <= 1).
-    :type gamma: float
-
-    :param epsilon: The exploration probability (0 <= epsilon <= 1).
-    :type epsilon: float
-
-    :param verbosity_level: Level of verbosity for output messages.
-    :type verbosity_level: int
-
-    :param queue: A queue object for inter-process communication.
-    :type queue: Queue
-
-    :param section: The section or segment of the task being processed.
-    :type section: any
-
-    :param episode_start: The starting episode number.
-    :type episode_start: int
-
-    :return: Tuple containing episode lengths, algorithm name, and the final alpha value.
-    :rtype: (list of int, str, float)
+    Returns:
+      tuple: A tuple containing episode lengths, algorithm name, and the final alpha value.
     """
     # n step sarsa, n = 5
     n = 5
@@ -326,50 +303,22 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
     reaches the maximum number of cycles. The learning results are saved to a file, and the learning
     progress can be plotted.
 
-    :param section_length: Length of each section of the robot arm.
-    :type section_length: int
+    Args:
+      section_length (int): Length of each section of the robot arm.
+      section (any): The specific section of the task to be learned.
+      min_num_episodes (int): Minimum number of episodes for each learning cycle.
+      alpha (float): The learning rate.
+      gamma (float): The discount factor.
+      epsilon (float): The exploration probability.
+      queue (Queue, optional): Queue for inter-process communication. Default is None.
+      load (bool): Whether to load pre-learned values. Default is False.
+      max_num_cycles (int): Maximum number of learning cycles. Default is 5.
+      draw_robot (bool): Flag to indicate if the robot should be visualized during the process. Default is False.
+      starting_pos (list/tuple, optional): Starting position of the robot. Default is None.
+      save_plot (bool): Flag to indicate if the learning plot should be saved. Default is True.
 
-    :param section: The specific section of the task to be learned.
-    :type section: any
-
-    :param min_num_episodes: Minimum number of episodes for each learning cycle.
-    :type min_num_episodes: int
-
-    :param alpha: The learning rate.
-    :type alpha: float
-
-    :param gamma: The discount factor.
-    :type gamma: float
-
-    :param epsilon: The exploration probability.
-    :type epsilon: float
-
-    :param queue: Queue for inter-process communication, if applicable.
-    :type queue: Queue
-
-    :param load: Whether to load pre-learned values.
-    :type load: bool
-
-    :param max_num_cycles: Maximum number of learning cycles.
-    :type max_num_cycles: int
-
-    :param draw_robot: Flag to indicate if the robot should be visualized during the process.
-    :type draw_robot: bool
-
-    :param starting_pos: Starting position of the robot, if specified.
-    :type starting_pos: list or tuple
-
-    :param save_plot: Flag to indicate if the learning plot should be saved.
-    :type save_plot: bool
-
-    :return: The final angles of the robot arm after learning completion.
-    :rtype: list or tuple
-
-    :return: None
-    :rtype: NoneType
-
-    :return: None
-    :rtype: NoneType
+    Returns:
+      list/tuple: The final angles of the robot arm after learning completion.
     """
     # Learn section and save to file
     arm = bot.Robot_Arm(section_length=section_length, helix_section=section,
@@ -435,11 +384,11 @@ def print_sections(num_sections):
     This function prints a formatted header showing section numbers for a given number of sections.
     It is designed to visually organize output related to different sections in a structured format.
 
-    :param num_sections: The total number of sections to display in the header.
-    :type num_sections: int
+    Args:
+      num_sections (int): The total number of sections to display in the header.
 
-    :return: None
-    :rtype: NoneType
+    Returns:
+      None
     """
     print("\n         ", end="")
     for i in range(int(num_sections/2)-1):
@@ -463,16 +412,12 @@ def monitor_queue(total_num_sections, queue):
     notifications. It's designed to provide a real-time progress overview in a multi-process or
     multi-threaded environment.
 
-    :param total_num_sections: Total number of sections in the task.
-    :type total_num_sections: int
+    Args:
+      total_num_sections (int): Total number of sections in the task.
+      queue (Queue): Queue object used for inter-process or inter-thread communication.
 
-    :param queue: Queue object used for inter-process or inter-thread communication.
-    :type queue: Queue
-
-    :return: None
-    :rtype: NoneType
-
-    Note: This function assumes that 'print_sections' is defined and accessible in the same scope.
+    Returns:
+      None
     """
     print_sections(total_num_sections)
     while True:
@@ -512,28 +457,18 @@ def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=32, use_le
     of sections is a power of two and starts a separate monitoring thread to track and display the progress of
     the learning tasks.
 
-    :param num_episodes: Number of episodes for each learning process.
-    :type num_episodes: int
-
-    :param alpha: Learning rate for the learning algorithm.
-    :type alpha: float
-
-    :param gamma: Discount factor for the learning algorithm.
-    :type gamma: float
-
-    :param epsilon: Exploration probability for the learning algorithm.
-    :type epsilon: float
-
-    :param num_processes: Number of parallel processes to be created for learning.
-    :type num_processes: int, optional
-
-    :param use_learned: Flag to indicate whether to use previously learned values.
-    :type use_learned: bool, optional
-
-    :return: None
-    :rtype: NoneType
-
     Note: This function assumes that 'learn' and 'monitor_queue' functions are defined and accessible.
+
+    Args:
+      num_episodes (int): Number of episodes for each learning process.
+      alpha (float): Learning rate for the learning algorithm.
+      gamma (float): Discount factor for the learning algorithm.
+      epsilon (float): Exploration probability for the learning algorithm.
+      num_processes (int, optional): Number of parallel processes to be created for learning. Default is 32.
+      use_learned (bool, optional): Flag to indicate whether to use previously learned values. Default is False.
+
+    Returns:
+      None
     """
     print("\nLearning in Parallel")
 
