@@ -34,10 +34,6 @@ position, voxel size, and the maximum distance for voxel generation from the pat
 voxels on or near the helix trajectory, and obtain the raw helix data. It is equipped to handle
 different scales of the helix and provides functionalities for calculating the nearest distance from
 a point to the helix and managing rewards associated with the voxels.</p>
-<p>Typical Usage Example:
-helix_path = Path(helix_start=(0, 0, 0), voxel_size=1, max_distance=1)
-helix_voxels, winning_voxels, rewards = helix_path.get_helix_voxels()
-helix_data = helix_path.get_helix_data()</p>
 <p>This module is particularly useful in robotic applications where path following and navigation in
 three-dimensional space are essential, such as in robotic arms or autonomous drones navigating through
 prescribed paths.</p>
@@ -60,11 +56,6 @@ The Path class offers methods to calculate specific points on the helix given a 
 voxels on or near the helix trajectory, and obtain the raw helix data. It is equipped to handle
 different scales of the helix and provides functionalities for calculating the nearest distance from
 a point to the helix and managing rewards associated with the voxels.
-
-Typical Usage Example:
-    helix_path = Path(helix_start=(0, 0, 0), voxel_size=1, max_distance=1)
-    helix_voxels, winning_voxels, rewards = helix_path.get_helix_voxels()
-    helix_data = helix_path.get_helix_data()
 
 This module is particularly useful in robotic applications where path following and navigation in
 three-dimensional space are essential, such as in robotic arms or autonomous drones navigating through
