@@ -45,23 +45,41 @@ import Robot_Arm as bot
 import gc
 import multiprocessing
 import threading
+import signal # Import signal module
+
+# number of axis used by the robot arm. Either 3 or 6
+num_axis = 6
+
+# total number of sections to be learned
+num_sections = 64
+# section the parallel learning should start in
+section_start = 0
+# number of sections that should be learned
+learn_sections = 64
+
+#signal handler function
+def SignalHandler_SIGINT(SignalNumber,Frame):
+    """Handle CTRL+C to show the total execution time so far and exit program.
+
+    Args:
+      SignalNumber (int): Unused.
+      SignalNumber (int): Unused.
+
+    Returns:
+      None
+    """
+    total_time = time.time()-starting_time
+    print(f"\nTotal time: {total_time} seconds")
+    sys.exit()
+    
+#register the signal with Signal handler
+signal.signal(signal.SIGINT,SignalHandler_SIGINT)
 
 # suppress scientific notation
 np.set_printoptions(suppress=True)
 
-# number of axis used by the robot arm. Either 3 or 6
-num_axis = 3
-
-# total number of sections to be learned
-num_sections = 32
-# section the parallel learning should start in
-section_start = 0
-# number of sections that should be learned
-learn_sections = 32
-
 def debug_pause(string_to_print=None):
-    """
-    Pause the program execution and optionally print a message.
+    """Pause the program execution and optionally print a message.
 
     This function pauses the execution of the program until the user presses Enter.
     It can optionally print a message before pausing.
@@ -77,8 +95,7 @@ def debug_pause(string_to_print=None):
     input("Press Enter to continue...")
 
 def get_action_epsilon_greedy(robot, epsilon: float = 0.1, verbosity_level=0) -> int:
-    """
-    Explore or exploit to choose an action for the robot based on epsilon-greedy strategy.
+    """Explore or exploit to choose an action for the robot based on epsilon-greedy strategy.
 
     This function decides whether to explore a new action randomly or exploit the best known action
     from the robot's Q-values. The choice between exploration and exploitation is made based on the
@@ -110,8 +127,7 @@ def get_action_epsilon_greedy(robot, epsilon: float = 0.1, verbosity_level=0) ->
 
 def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbosity_level=0,
                  queue=None, section=None, episode_start=0):
-    """
-    Perform the n-step SARSA algorithm on a given robot for a specified number of episodes.
+    """Perform the n-step SARSA algorithm on a given robot for a specified number of episodes.
 
     This function implements the n-step SARSA learning algorithm. It iteratively updates the Q-values
     based on the observed rewards and the chosen actions using an epsilon-greedy policy. The function
@@ -293,9 +309,8 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
     return episode_lengths, algo, alpha
 
 def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queue=None, load=False,
-          max_num_cycles=5, draw_robot=False, starting_pos=None, save_plot=True):
-    """
-    Conduct learning on a robotic arm using the n-step SARSA algorithm and save the results.
+          max_num_cycles=5, draw_robot=False, starting_pos=None, save_plot=True, generate_voxels=True):
+    """Conduct learning on a robotic arm using the n-step SARSA algorithm and save the results.
 
     This function initializes a robot arm and performs learning cycles using the n-step SARSA algorithm.
     It supports loading pre-learned values, adjusting the starting position, and visualizing the robot's
@@ -320,9 +335,15 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
     Returns:
       list/tuple: The final angles of the robot arm after learning completion.
     """
+    # When loading file, we don't need to generate all voxels
+    if generate_voxels is False:
+        voxel_volume = None
+    else:
+        voxel_volume = 2
+
     # Learn section and save to file
     arm = bot.Robot_Arm(section_length=section_length, helix_section=section,
-                        voxel_volume=2, num_axis=num_axis)
+                        voxel_volume=voxel_volume, num_axis=num_axis)
 
     if load is True:
         arm.load_learned_from_file()
@@ -333,26 +354,34 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
     if queue is None and draw_robot is True:
         arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
-    # Learn until the Q values lead the arm into the finish
+    # Check if we can get through the Q path and into the finish
     episode_lengths = []
-    for cycle in range(max_num_cycles):
+    finishing_angles_last_section = arm.get_finishing_angles_rad()
+    if (finishing_angles_last_section[0] == "Success"):
         if queue is not None:
-            queue.put((section, cycle, "cycle"))
-            sarsa_verbosity_level = 0
+            queue.put((section, 0, "done"))
         else:
-            print(f"section: {section}, cycle {cycle}")
-            sarsa_verbosity_level = 1
-        eps, _, alpha = n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon,
-                                     verbosity_level=sarsa_verbosity_level, queue=queue,
-                                     section=section, episode_start=(cycle*min_num_episodes))
-        episode_lengths = episode_lengths + eps
-        finishing_angles_last_section = arm.get_finishing_angles_rad()
-        if (finishing_angles_last_section[0] == "Success") or (cycle == max_num_cycles-1):
+            print(f"    section: {section}, cycle {0}, WORKS!")
+    else:
+        # Learn until the Q values lead the arm into the finish
+        for cycle in range(max_num_cycles):
             if queue is not None:
-                queue.put((section, cycle, "done"))
+                queue.put((section, cycle, "cycle"))
+                sarsa_verbosity_level = 0
             else:
-                print(f"    section: {section}, cycle {cycle}, DONE!")
-            break
+                print(f"section: {section}, cycle {cycle}")
+                sarsa_verbosity_level = 1
+            eps, _, alpha = n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon,
+                                         verbosity_level=sarsa_verbosity_level, queue=queue,
+                                         section=section, episode_start=(cycle*min_num_episodes))
+            episode_lengths = episode_lengths + eps
+            finishing_angles_last_section = arm.get_finishing_angles_rad()
+            if (finishing_angles_last_section[0] == "Success") or (cycle == max_num_cycles-1):
+                if queue is not None:
+                    queue.put((section, cycle, "done"))
+                else:
+                    print(f"    section: {section}, cycle {cycle}, DONE!")
+                break
 
     arm.save_learned_to_file()
 
@@ -495,7 +524,8 @@ def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=32, use_le
     num_processes = total_sections
 
     for i in range(section_start, section_start+learn_sections):
-        args = (section_length, i, num_episodes, alpha, gamma, epsilon, queue, use_learned, max_num_cycles, show_robot, None, True)
+        # save plot set to Falso for now because of bug in Matplotlib / Pillow
+        args = (section_length, i, num_episodes, alpha, gamma, epsilon, queue, use_learned, max_num_cycles, show_robot, None, False)
         p = multiprocessing.Process(target=learn, args=args)
         p.start()
         processes.append(p)
@@ -516,7 +546,10 @@ def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=32, use_le
     # Kill monitoring thread
     monitor_thread.join()
 
+starting_time = 0
+
 def main():
+    global starting_time
     # Number of episodes per section
     num_episodes = 10000
     alpha = 0.1
@@ -529,18 +562,18 @@ def main():
 
     print("\n\n    Parallel learning done, now going sequentially through each section and stitching them together.\n")
 
-    num_episodes = 20
+    num_episodes = 50
     alpha = 0.01
     finishing_angles = None
 
     for i in range(learn_sections):
         finishing_angles = learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True,
-                                 max_num_cycles=100, draw_robot=False, starting_pos=finishing_angles,
-                                 save_plot=False)
+                                 max_num_cycles=500, draw_robot=False, starting_pos=finishing_angles,
+                                 save_plot=False, generate_voxels=False)
 
     total_time = time.time()-starting_time
 
-    arm = bot.Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=2, num_axis=num_axis)
+    arm = bot.Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=2, num_axis=num_axis, generate_voxels=False)
     arm.load_learned_from_file()
 
     for i in range(learn_sections-1):

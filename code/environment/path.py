@@ -87,7 +87,7 @@ class Path:
         elif self.helix_scale == "cm":
             self.helix_factor = 1
         else:
-            self.helix_factor = 15
+            self.helix_factor = 10
 
     def x(self, t: float):
         """Calculate the x-coordinate of a point on the helix path at a given parameter.
