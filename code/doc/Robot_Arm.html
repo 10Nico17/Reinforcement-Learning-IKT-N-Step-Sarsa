@@ -182,12 +182,16 @@ class Robot_Arm:
             self.section_length = section_length
         helix_section = helix_section * section_length
 
+        self.voxels, self.winning_voxels[0], self.rewards = ([], [], [])
+
         # Create path for the robot
         path = Path(helix_start=starting_pos, max_distance=voxel_volume,
                     generate_percentage_of_helix=self.section_length, generate_start=helix_section)
 
-        # save voxels, winning_voxels and rewards in lists
-        self.voxels, self.winning_voxels[0], self.rewards = path.get_helix_voxels()
+        # Create voxels only then voxels are asked for
+        if voxel_volume is not None:
+            # save voxels, winning_voxels and rewards in lists
+            self.voxels, self.winning_voxels[0], self.rewards = path.get_helix_voxels()
 
         # save path
         self.path = path.get_helix_data()
@@ -339,7 +343,7 @@ class Robot_Arm:
         &#34;&#34;&#34;
         if angle &gt; np.pi/2:
             return np.pi
-        if angle &lt; -np.pi:
+        if angle &lt; -np.pi/2:
             return -np.pi
         return angle
 
@@ -681,7 +685,7 @@ class Robot_Arm:
         tcp_coordinates = (tcp_matrix[0, 3], tcp_matrix[1, 3], tcp_matrix[2, 3])
         return tcp_coordinates
 
-    def animate_move_along_q_values(self, draw_path=False, draw_voxels=False, zoom_path=False, fps=20, max_steps=2000):
+    def animate_move_along_q_values(self, draw_path=False, draw_voxels=False, zoom_path=False, fps=20, max_steps=7000):
         &#34;&#34;&#34;Move the robot along the learned Q values and animate it.
 
         Animates the robot arm&#39;s movement based on the highest Q values from the learning process. The animation
@@ -746,7 +750,8 @@ class Robot_Arm:
             None
         &#34;&#34;&#34;
         if draw_q_path is True:
-            self.get_finishing_angles_rad()
+            _, _, num_steps = self.get_finishing_angles_rad()
+            print(f&#34;Number of steps taken to traverse Helix: {num_steps}&#34;)
 
         if zoom_path is False:
             ax = self.env.plot(show=False)
@@ -977,7 +982,7 @@ class Robot_Arm:
 
         self.section_to_stitch += 1
 
-    def get_finishing_angles_rad(self, max_steps=2000) -&gt; (str, (float, float, float, float, float,)):
+    def get_finishing_angles_rad(self, max_steps=7000) -&gt; (str, (float, float, float, float, float,)):
         &#34;&#34;&#34;Determine the finishing angles of the robot arm based on the learned movements.
 
         This method navigates the robot arm through its environment based on the highest Q-values obtained
@@ -989,8 +994,8 @@ class Robot_Arm:
             max_steps (int): Maximum number of steps to perform for determining finishing angles.
 
         Returns:
-            tuple: A string indicating the final status (&#39;Success&#39;, &#39;Out of bounds&#39;, &#39;Infinite Loop&#39;)
-                   and the final joint angles in radians.
+            tuple: A string indicating the final status (&#39;Success&#39;, &#39;Out of bounds&#39;, &#39;Infinite Loop&#39;),
+                   the final joint angles in radians and the number of steps taken to traverse the helix.
 
         Note: The method resets the robot arm to its starting position before beginning the navigation process.
         &#34;&#34;&#34;
@@ -1029,7 +1034,7 @@ class Robot_Arm:
 
         self.move_along_q_in_section = 0
 
-        return return_string, tuple(self.get_joint_angles_rad())
+        return return_string, tuple(self.get_joint_angles_rad()), i
 
     def calc_mse(self, support_points=1000):
         &#34;&#34;&#34;Calculate the Mean Squared Error (MSE) between the desired path and the path taken by the robot.
@@ -1280,12 +1285,16 @@ up an environment for reinforcement learning.</p>
             self.section_length = section_length
         helix_section = helix_section * section_length
 
+        self.voxels, self.winning_voxels[0], self.rewards = ([], [], [])
+
         # Create path for the robot
         path = Path(helix_start=starting_pos, max_distance=voxel_volume,
                     generate_percentage_of_helix=self.section_length, generate_start=helix_section)
 
-        # save voxels, winning_voxels and rewards in lists
-        self.voxels, self.winning_voxels[0], self.rewards = path.get_helix_voxels()
+        # Create voxels only then voxels are asked for
+        if voxel_volume is not None:
+            # save voxels, winning_voxels and rewards in lists
+            self.voxels, self.winning_voxels[0], self.rewards = path.get_helix_voxels()
 
         # save path
         self.path = path.get_helix_data()
@@ -1437,7 +1446,7 @@ up an environment for reinforcement learning.</p>
         &#34;&#34;&#34;
         if angle &gt; np.pi/2:
             return np.pi
-        if angle &lt; -np.pi:
+        if angle &lt; -np.pi/2:
             return -np.pi
         return angle
 
@@ -1779,7 +1788,7 @@ up an environment for reinforcement learning.</p>
         tcp_coordinates = (tcp_matrix[0, 3], tcp_matrix[1, 3], tcp_matrix[2, 3])
         return tcp_coordinates
 
-    def animate_move_along_q_values(self, draw_path=False, draw_voxels=False, zoom_path=False, fps=20, max_steps=2000):
+    def animate_move_along_q_values(self, draw_path=False, draw_voxels=False, zoom_path=False, fps=20, max_steps=7000):
         &#34;&#34;&#34;Move the robot along the learned Q values and animate it.
 
         Animates the robot arm&#39;s movement based on the highest Q values from the learning process. The animation
@@ -1844,7 +1853,8 @@ up an environment for reinforcement learning.</p>
             None
         &#34;&#34;&#34;
         if draw_q_path is True:
-            self.get_finishing_angles_rad()
+            _, _, num_steps = self.get_finishing_angles_rad()
+            print(f&#34;Number of steps taken to traverse Helix: {num_steps}&#34;)
 
         if zoom_path is False:
             ax = self.env.plot(show=False)
@@ -2075,7 +2085,7 @@ up an environment for reinforcement learning.</p>
 
         self.section_to_stitch += 1
 
-    def get_finishing_angles_rad(self, max_steps=2000) -&gt; (str, (float, float, float, float, float,)):
+    def get_finishing_angles_rad(self, max_steps=7000) -&gt; (str, (float, float, float, float, float,)):
         &#34;&#34;&#34;Determine the finishing angles of the robot arm based on the learned movements.
 
         This method navigates the robot arm through its environment based on the highest Q-values obtained
@@ -2087,8 +2097,8 @@ up an environment for reinforcement learning.</p>
             max_steps (int): Maximum number of steps to perform for determining finishing angles.
 
         Returns:
-            tuple: A string indicating the final status (&#39;Success&#39;, &#39;Out of bounds&#39;, &#39;Infinite Loop&#39;)
-                   and the final joint angles in radians.
+            tuple: A string indicating the final status (&#39;Success&#39;, &#39;Out of bounds&#39;, &#39;Infinite Loop&#39;),
+                   the final joint angles in radians and the number of steps taken to traverse the helix.
 
         Note: The method resets the robot arm to its starting position before beginning the navigation process.
         &#34;&#34;&#34;
@@ -2127,7 +2137,7 @@ up an environment for reinforcement learning.</p>
 
         self.move_along_q_in_section = 0
 
-        return return_string, tuple(self.get_joint_angles_rad())
+        return return_string, tuple(self.get_joint_angles_rad()), i
 
     def calc_mse(self, support_points=1000):
         &#34;&#34;&#34;Calculate the Mean Squared Error (MSE) between the desired path and the path taken by the robot.
@@ -2264,7 +2274,7 @@ up an environment for reinforcement learning.</p>
 </details>
 </dd>
 <dt id="Robot_Arm.Robot_Arm.animate_move_along_q_values"><code class="name flex">
-<span>def <span class="ident">animate_move_along_q_values</span></span>(<span>self, draw_path=False, draw_voxels=False, zoom_path=False, fps=20, max_steps=2000)</span>
+<span>def <span class="ident">animate_move_along_q_values</span></span>(<span>self, draw_path=False, draw_voxels=False, zoom_path=False, fps=20, max_steps=7000)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Move the robot along the learned Q values and animate it.</p>
@@ -2292,7 +2302,7 @@ Needs to be called last.</p>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def animate_move_along_q_values(self, draw_path=False, draw_voxels=False, zoom_path=False, fps=20, max_steps=2000):
+<pre><code class="python">def animate_move_along_q_values(self, draw_path=False, draw_voxels=False, zoom_path=False, fps=20, max_steps=7000):
     &#34;&#34;&#34;Move the robot along the learned Q values and animate it.
 
     Animates the robot arm&#39;s movement based on the highest Q values from the learning process. The animation
@@ -2566,7 +2576,7 @@ deviation of the robot's path from the desired path.</p>
 </details>
 </dd>
 <dt id="Robot_Arm.Robot_Arm.get_finishing_angles_rad"><code class="name flex">
-<span>def <span class="ident">get_finishing_angles_rad</span></span>(<span>self, max_steps=2000) ‑> (<class 'str'>, (<class 'float'>, <class 'float'>, <class 'float'>, <class 'float'>, <class 'float'>))</span>
+<span>def <span class="ident">get_finishing_angles_rad</span></span>(<span>self, max_steps=7000) ‑> (<class 'str'>, (<class 'float'>, <class 'float'>, <class 'float'>, <class 'float'>, <class 'float'>))</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Determine the finishing angles of the robot arm based on the learned movements.</p>
@@ -2582,15 +2592,15 @@ of the robot arm in radians.</p>
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>tuple</code></dt>
-<dd>A string indicating the final status ('Success', 'Out of bounds', 'Infinite Loop')
-and the final joint angles in radians.</dd>
+<dd>A string indicating the final status ('Success', 'Out of bounds', 'Infinite Loop'),
+the final joint angles in radians and the number of steps taken to traverse the helix.</dd>
 </dl>
 <p>Note: The method resets the robot arm to its starting position before beginning the navigation process.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_finishing_angles_rad(self, max_steps=2000) -&gt; (str, (float, float, float, float, float,)):
+<pre><code class="python">def get_finishing_angles_rad(self, max_steps=7000) -&gt; (str, (float, float, float, float, float,)):
     &#34;&#34;&#34;Determine the finishing angles of the robot arm based on the learned movements.
 
     This method navigates the robot arm through its environment based on the highest Q-values obtained
@@ -2602,8 +2612,8 @@ and the final joint angles in radians.</dd>
         max_steps (int): Maximum number of steps to perform for determining finishing angles.
 
     Returns:
-        tuple: A string indicating the final status (&#39;Success&#39;, &#39;Out of bounds&#39;, &#39;Infinite Loop&#39;)
-               and the final joint angles in radians.
+        tuple: A string indicating the final status (&#39;Success&#39;, &#39;Out of bounds&#39;, &#39;Infinite Loop&#39;),
+               the final joint angles in radians and the number of steps taken to traverse the helix.
 
     Note: The method resets the robot arm to its starting position before beginning the navigation process.
     &#34;&#34;&#34;
@@ -2642,7 +2652,7 @@ and the final joint angles in radians.</dd>
 
     self.move_along_q_in_section = 0
 
-    return return_string, tuple(self.get_joint_angles_rad())</code></pre>
+    return return_string, tuple(self.get_joint_angles_rad()), i</code></pre>
 </details>
 </dd>
 <dt id="Robot_Arm.Robot_Arm.get_inverse_action_dict"><code class="name flex">
@@ -3220,7 +3230,8 @@ is reset to this starting position.</p>
         None
     &#34;&#34;&#34;
     if draw_q_path is True:
-        self.get_finishing_angles_rad()
+        _, _, num_steps = self.get_finishing_angles_rad()
+        print(f&#34;Number of steps taken to traverse Helix: {num_steps}&#34;)
 
     if zoom_path is False:
         ax = self.env.plot(show=False)

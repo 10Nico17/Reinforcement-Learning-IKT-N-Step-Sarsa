@@ -47,7 +47,7 @@ The module is designed to be used in a sequential manner, starting with initiali
 followed by parallel learning with <code><a title="reinforce.learn_parallel" href="#reinforce.learn_parallel">learn_parallel()</a></code>, and finally stitching together the learned sections
 for a complete learning strategy.</p>
 <p>Note:
-This module assumes the existence of a <code><a title="Robot_Arm" href="Robot_Arm.html">Robot_Arm</a></code> class within the <code>environment</code> directory, which is
+This module assumes the existence of a <code>Robot_Arm</code> class within the <code>environment</code> directory, which is
 responsible for the actual robotic arm manipulation and learning algorithm implementations. It also uses
 multi-threading and multi-processing for parallel execution and monitoring.</p>
 <p>Authors: F. M. Sokol, N. M. Hahn, M. Ubbelohde</p>
@@ -102,12 +102,10 @@ import Robot_Arm as bot
 import gc
 import multiprocessing
 import threading
-
-# suppress scientific notation
-np.set_printoptions(suppress=True)
+import signal # Import signal module
 
 # number of axis used by the robot arm. Either 3 or 6
-num_axis = 3
+num_axis = 6
 
 # total number of sections to be learned
 num_sections = 32
@@ -116,9 +114,29 @@ section_start = 0
 # number of sections that should be learned
 learn_sections = 32
 
-def debug_pause(string_to_print=None):
+#signal handler function
+def SignalHandler_SIGINT(SignalNumber,Frame):
+    &#34;&#34;&#34;Handle CTRL+C to show the total execution time so far and exit program.
+
+    Args:
+      SignalNumber (int): Unused.
+      SignalNumber (int): Unused.
+
+    Returns:
+      None
     &#34;&#34;&#34;
-    Pause the program execution and optionally print a message.
+    total_time = time.time()-starting_time
+    print(f&#34;\nTotal time: {total_time} seconds&#34;)
+    sys.exit()
+    
+#register the signal with Signal handler
+signal.signal(signal.SIGINT,SignalHandler_SIGINT)
+
+# suppress scientific notation
+np.set_printoptions(suppress=True)
+
+def debug_pause(string_to_print=None):
+    &#34;&#34;&#34;Pause the program execution and optionally print a message.
 
     This function pauses the execution of the program until the user presses Enter.
     It can optionally print a message before pausing.
@@ -134,8 +152,7 @@ def debug_pause(string_to_print=None):
     input(&#34;Press Enter to continue...&#34;)
 
 def get_action_epsilon_greedy(robot, epsilon: float = 0.1, verbosity_level=0) -&gt; int:
-    &#34;&#34;&#34;
-    Explore or exploit to choose an action for the robot based on epsilon-greedy strategy.
+    &#34;&#34;&#34;Explore or exploit to choose an action for the robot based on epsilon-greedy strategy.
 
     This function decides whether to explore a new action randomly or exploit the best known action
     from the robot&#39;s Q-values. The choice between exploration and exploitation is made based on the
@@ -167,8 +184,7 @@ def get_action_epsilon_greedy(robot, epsilon: float = 0.1, verbosity_level=0) -&
 
 def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbosity_level=0,
                  queue=None, section=None, episode_start=0):
-    &#34;&#34;&#34;
-    Perform the n-step SARSA algorithm on a given robot for a specified number of episodes.
+    &#34;&#34;&#34;Perform the n-step SARSA algorithm on a given robot for a specified number of episodes.
 
     This function implements the n-step SARSA learning algorithm. It iteratively updates the Q-values
     based on the observed rewards and the chosen actions using an epsilon-greedy policy. The function
@@ -350,9 +366,8 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
     return episode_lengths, algo, alpha
 
 def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queue=None, load=False,
-          max_num_cycles=5, draw_robot=False, starting_pos=None, save_plot=True):
-    &#34;&#34;&#34;
-    Conduct learning on a robotic arm using the n-step SARSA algorithm and save the results.
+          max_num_cycles=5, draw_robot=False, starting_pos=None, save_plot=True, generate_voxels=True):
+    &#34;&#34;&#34;Conduct learning on a robotic arm using the n-step SARSA algorithm and save the results.
 
     This function initializes a robot arm and performs learning cycles using the n-step SARSA algorithm.
     It supports loading pre-learned values, adjusting the starting position, and visualizing the robot&#39;s
@@ -377,9 +392,15 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
     Returns:
       list/tuple: The final angles of the robot arm after learning completion.
     &#34;&#34;&#34;
+    # When loading file, we don&#39;t need to generate all voxels
+    if generate_voxels is False:
+        voxel_volume = None
+    else:
+        voxel_volume = 2
+
     # Learn section and save to file
     arm = bot.Robot_Arm(section_length=section_length, helix_section=section,
-                        voxel_volume=2, num_axis=num_axis)
+                        voxel_volume=voxel_volume, num_axis=num_axis)
 
     if load is True:
         arm.load_learned_from_file()
@@ -390,7 +411,7 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
     if queue is None and draw_robot is True:
         arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
-    # Learn until the Q values lead the arm into the finish
+    # Check if we can get through the Q path and into the finish
     episode_lengths = []
     for cycle in range(max_num_cycles):
         if queue is not None:
@@ -552,7 +573,8 @@ def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=32, use_le
     num_processes = total_sections
 
     for i in range(section_start, section_start+learn_sections):
-        args = (section_length, i, num_episodes, alpha, gamma, epsilon, queue, use_learned, max_num_cycles, show_robot, None, True)
+        # save plot set to Falso for now because of bug in Matplotlib / Pillow
+        args = (section_length, i, num_episodes, alpha, gamma, epsilon, queue, use_learned, max_num_cycles, show_robot, None, False)
         p = multiprocessing.Process(target=learn, args=args)
         p.start()
         processes.append(p)
@@ -573,7 +595,10 @@ def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=32, use_le
     # Kill monitoring thread
     monitor_thread.join()
 
+starting_time = 0
+
 def main():
+    global starting_time
     # Number of episodes per section
     num_episodes = 10000
     alpha = 0.1
@@ -582,22 +607,22 @@ def main():
 
     starting_time = time.time()
 
-    learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=True)
+    #learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=True)
 
     print(&#34;\n\n    Parallel learning done, now going sequentially through each section and stitching them together.\n&#34;)
 
-    num_episodes = 20
+    num_episodes = 50
     alpha = 0.01
     finishing_angles = None
 
     for i in range(learn_sections):
         finishing_angles = learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True,
-                                 max_num_cycles=100, draw_robot=False, starting_pos=finishing_angles,
-                                 save_plot=False)
+                                 max_num_cycles=500, draw_robot=False, starting_pos=finishing_angles,
+                                 save_plot=False, generate_voxels=False)
 
     total_time = time.time()-starting_time
 
-    arm = bot.Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=2, num_axis=num_axis)
+    arm = bot.Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=None, num_axis=num_axis)
     arm.load_learned_from_file()
 
     for i in range(learn_sections-1):
@@ -619,6 +644,39 @@ if __name__ == &#34;__main__&#34;:
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
+<dt id="reinforce.SignalHandler_SIGINT"><code class="name flex">
+<span>def <span class="ident">SignalHandler_SIGINT</span></span>(<span>SignalNumber, Frame)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Handle CTRL+C to show the total execution time so far and exit program.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>SignalNumber</code></strong> :&ensp;<code>int</code></dt>
+<dd>Unused.</dd>
+<dt><strong><code>SignalNumber</code></strong> :&ensp;<code>int</code></dt>
+<dd>Unused.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>None</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def SignalHandler_SIGINT(SignalNumber,Frame):
+    &#34;&#34;&#34;Handle CTRL+C to show the total execution time so far and exit program.
+
+    Args:
+      SignalNumber (int): Unused.
+      SignalNumber (int): Unused.
+
+    Returns:
+      None
+    &#34;&#34;&#34;
+    total_time = time.time()-starting_time
+    print(f&#34;\nTotal time: {total_time} seconds&#34;)
+    sys.exit()</code></pre>
+</details>
+</dd>
 <dt id="reinforce.debug_pause"><code class="name flex">
 <span>def <span class="ident">debug_pause</span></span>(<span>string_to_print=None)</span>
 </code></dt>
@@ -638,8 +696,7 @@ It can optionally print a message before pausing.</p>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def debug_pause(string_to_print=None):
-    &#34;&#34;&#34;
-    Pause the program execution and optionally print a message.
+    &#34;&#34;&#34;Pause the program execution and optionally print a message.
 
     This function pauses the execution of the program until the user presses Enter.
     It can optionally print a message before pausing.
@@ -683,8 +740,7 @@ based on current Q-values is selected.</p>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_action_epsilon_greedy(robot, epsilon: float = 0.1, verbosity_level=0) -&gt; int:
-    &#34;&#34;&#34;
-    Explore or exploit to choose an action for the robot based on epsilon-greedy strategy.
+    &#34;&#34;&#34;Explore or exploit to choose an action for the robot based on epsilon-greedy strategy.
 
     This function decides whether to explore a new action randomly or exploit the best known action
     from the robot&#39;s Q-values. The choice between exploration and exploitation is made based on the
@@ -716,7 +772,7 @@ based on current Q-values is selected.</p>
 </details>
 </dd>
 <dt id="reinforce.learn"><code class="name flex">
-<span>def <span class="ident">learn</span></span>(<span>section_length, section, min_num_episodes, alpha, gamma, epsilon, queue=None, load=False, max_num_cycles=5, draw_robot=False, starting_pos=None, save_plot=True)</span>
+<span>def <span class="ident">learn</span></span>(<span>section_length, section, min_num_episodes, alpha, gamma, epsilon, queue=None, load=False, max_num_cycles=5, draw_robot=False, starting_pos=None, save_plot=True, generate_voxels=True)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Conduct learning on a robotic arm using the n-step SARSA algorithm and save the results.</p>
@@ -758,9 +814,8 @@ progress can be plotted.</p>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queue=None, load=False,
-          max_num_cycles=5, draw_robot=False, starting_pos=None, save_plot=True):
-    &#34;&#34;&#34;
-    Conduct learning on a robotic arm using the n-step SARSA algorithm and save the results.
+          max_num_cycles=5, draw_robot=False, starting_pos=None, save_plot=True, generate_voxels=True):
+    &#34;&#34;&#34;Conduct learning on a robotic arm using the n-step SARSA algorithm and save the results.
 
     This function initializes a robot arm and performs learning cycles using the n-step SARSA algorithm.
     It supports loading pre-learned values, adjusting the starting position, and visualizing the robot&#39;s
@@ -785,9 +840,15 @@ progress can be plotted.</p>
     Returns:
       list/tuple: The final angles of the robot arm after learning completion.
     &#34;&#34;&#34;
+    # When loading file, we don&#39;t need to generate all voxels
+    if generate_voxels is False:
+        voxel_volume = None
+    else:
+        voxel_volume = 2
+
     # Learn section and save to file
     arm = bot.Robot_Arm(section_length=section_length, helix_section=section,
-                        voxel_volume=2, num_axis=num_axis)
+                        voxel_volume=voxel_volume, num_axis=num_axis)
 
     if load is True:
         arm.load_learned_from_file()
@@ -798,7 +859,7 @@ progress can be plotted.</p>
     if queue is None and draw_robot is True:
         arm.show(draw_path=True, draw_voxels=True, zoom_path=True)
 
-    # Learn until the Q values lead the arm into the finish
+    # Check if we can get through the Q path and into the finish
     episode_lengths = []
     for cycle in range(max_num_cycles):
         if queue is not None:
@@ -925,7 +986,8 @@ the learning tasks.</p>
     num_processes = total_sections
 
     for i in range(section_start, section_start+learn_sections):
-        args = (section_length, i, num_episodes, alpha, gamma, epsilon, queue, use_learned, max_num_cycles, show_robot, None, True)
+        # save plot set to Falso for now because of bug in Matplotlib / Pillow
+        args = (section_length, i, num_episodes, alpha, gamma, epsilon, queue, use_learned, max_num_cycles, show_robot, None, False)
         p = multiprocessing.Process(target=learn, args=args)
         p.start()
         processes.append(p)
@@ -957,6 +1019,7 @@ the learning tasks.</p>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def main():
+    global starting_time
     # Number of episodes per section
     num_episodes = 10000
     alpha = 0.1
@@ -965,22 +1028,22 @@ the learning tasks.</p>
 
     starting_time = time.time()
 
-    learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=True)
+    #learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=True)
 
     print(&#34;\n\n    Parallel learning done, now going sequentially through each section and stitching them together.\n&#34;)
 
-    num_episodes = 20
+    num_episodes = 50
     alpha = 0.01
     finishing_angles = None
 
     for i in range(learn_sections):
         finishing_angles = learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True,
-                                 max_num_cycles=100, draw_robot=False, starting_pos=finishing_angles,
-                                 save_plot=False)
+                                 max_num_cycles=500, draw_robot=False, starting_pos=finishing_angles,
+                                 save_plot=False, generate_voxels=False)
 
     total_time = time.time()-starting_time
 
-    arm = bot.Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=2, num_axis=num_axis)
+    arm = bot.Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=None, num_axis=num_axis)
     arm.load_learned_from_file()
 
     for i in range(learn_sections-1):
@@ -1101,8 +1164,7 @@ a queue for parallel execution.</p>
 </summary>
 <pre><code class="python">def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbosity_level=0,
                  queue=None, section=None, episode_start=0):
-    &#34;&#34;&#34;
-    Perform the n-step SARSA algorithm on a given robot for a specified number of episodes.
+    &#34;&#34;&#34;Perform the n-step SARSA algorithm on a given robot for a specified number of episodes.
 
     This function implements the n-step SARSA learning algorithm. It iteratively updates the Q-values
     based on the observed rewards and the chosen actions using an epsilon-greedy policy. The function
@@ -1341,6 +1403,7 @@ It is designed to visually organize output related to different sections in a st
 <ul id="index">
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
+<li><code><a title="reinforce.SignalHandler_SIGINT" href="#reinforce.SignalHandler_SIGINT">SignalHandler_SIGINT</a></code></li>
 <li><code><a title="reinforce.debug_pause" href="#reinforce.debug_pause">debug_pause</a></code></li>
 <li><code><a title="reinforce.get_action_epsilon_greedy" href="#reinforce.get_action_epsilon_greedy">get_action_epsilon_greedy</a></code></li>
 <li><code><a title="reinforce.learn" href="#reinforce.learn">learn</a></code></li>

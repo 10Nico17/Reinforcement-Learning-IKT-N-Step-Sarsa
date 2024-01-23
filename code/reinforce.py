@@ -51,11 +51,11 @@ import signal # Import signal module
 num_axis = 6
 
 # total number of sections to be learned
-num_sections = 64
+num_sections = 32
 # section the parallel learning should start in
 section_start = 0
 # number of sections that should be learned
-learn_sections = 64
+learn_sections = 32
 
 #signal handler function
 def SignalHandler_SIGINT(SignalNumber,Frame):
@@ -356,32 +356,24 @@ def learn(section_length, section, min_num_episodes, alpha, gamma, epsilon, queu
 
     # Check if we can get through the Q path and into the finish
     episode_lengths = []
-    finishing_angles_last_section = arm.get_finishing_angles_rad()
-    if (finishing_angles_last_section[0] == "Success"):
+    for cycle in range(max_num_cycles):
         if queue is not None:
-            queue.put((section, 0, "done"))
+            queue.put((section, cycle, "cycle"))
+            sarsa_verbosity_level = 0
         else:
-            print(f"    section: {section}, cycle {0}, WORKS!")
-    else:
-        # Learn until the Q values lead the arm into the finish
-        for cycle in range(max_num_cycles):
+            print(f"section: {section}, cycle {cycle}")
+            sarsa_verbosity_level = 1
+        eps, _, alpha = n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon,
+                                     verbosity_level=sarsa_verbosity_level, queue=queue,
+                                     section=section, episode_start=(cycle*min_num_episodes))
+        episode_lengths = episode_lengths + eps
+        finishing_angles_last_section = arm.get_finishing_angles_rad()
+        if (finishing_angles_last_section[0] == "Success") or (cycle == max_num_cycles-1):
             if queue is not None:
-                queue.put((section, cycle, "cycle"))
-                sarsa_verbosity_level = 0
+                queue.put((section, cycle, "done"))
             else:
-                print(f"section: {section}, cycle {cycle}")
-                sarsa_verbosity_level = 1
-            eps, _, alpha = n_step_sarsa(arm, min_num_episodes, alpha, gamma, epsilon,
-                                         verbosity_level=sarsa_verbosity_level, queue=queue,
-                                         section=section, episode_start=(cycle*min_num_episodes))
-            episode_lengths = episode_lengths + eps
-            finishing_angles_last_section = arm.get_finishing_angles_rad()
-            if (finishing_angles_last_section[0] == "Success") or (cycle == max_num_cycles-1):
-                if queue is not None:
-                    queue.put((section, cycle, "done"))
-                else:
-                    print(f"    section: {section}, cycle {cycle}, DONE!")
-                break
+                print(f"    section: {section}, cycle {cycle}, DONE!")
+            break
 
     arm.save_learned_to_file()
 
@@ -558,7 +550,7 @@ def main():
 
     starting_time = time.time()
 
-    learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=True)
+    #learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=True)
 
     print("\n\n    Parallel learning done, now going sequentially through each section and stitching them together.\n")
 
@@ -573,7 +565,7 @@ def main():
 
     total_time = time.time()-starting_time
 
-    arm = bot.Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=2, num_axis=num_axis, generate_voxels=False)
+    arm = bot.Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=None, num_axis=num_axis)
     arm.load_learned_from_file()
 
     for i in range(learn_sections-1):

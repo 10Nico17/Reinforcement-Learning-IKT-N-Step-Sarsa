@@ -130,7 +130,7 @@ class Path:
         elif self.helix_scale == &#34;cm&#34;:
             self.helix_factor = 1
         else:
-            self.helix_factor = 15
+            self.helix_factor = 10
 
     def x(self, t: float):
         &#34;&#34;&#34;Calculate the x-coordinate of a point on the helix path at a given parameter.
@@ -411,7 +411,7 @@ get_helix_data(): Returns raw helix data (coordinates) without voxel processing.
         elif self.helix_scale == &#34;cm&#34;:
             self.helix_factor = 1
         else:
-            self.helix_factor = 15
+            self.helix_factor = 10
 
     def x(self, t: float):
         &#34;&#34;&#34;Calculate the x-coordinate of a point on the helix path at a given parameter.
