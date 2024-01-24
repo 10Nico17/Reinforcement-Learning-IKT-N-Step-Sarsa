@@ -45,17 +45,17 @@ import Robot_Arm as bot
 import gc
 import multiprocessing
 import threading
-import signal # Import signal module
+import signal
 
 # number of axis used by the robot arm. Either 3 or 6
 num_axis = 6
 
 # total number of sections to be learned
-num_sections = 32
+num_sections = 64
 # section the parallel learning should start in
 section_start = 0
 # number of sections that should be learned
-learn_sections = 32
+learn_sections = 64
 
 #signal handler function
 def SignalHandler_SIGINT(SignalNumber,Frame):
@@ -71,12 +71,6 @@ def SignalHandler_SIGINT(SignalNumber,Frame):
     total_time = time.time()-starting_time
     print(f"\nTotal time: {total_time} seconds")
     sys.exit()
-    
-#register the signal with Signal handler
-signal.signal(signal.SIGINT,SignalHandler_SIGINT)
-
-# suppress scientific notation
-np.set_printoptions(suppress=True)
 
 def debug_pause(string_to_print=None):
     """Pause the program execution and optionally print a message.
@@ -538,7 +532,9 @@ def learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=32, use_le
     # Kill monitoring thread
     monitor_thread.join()
 
+
 starting_time = 0
+
 
 def main():
     global starting_time
@@ -548,24 +544,48 @@ def main():
     gamma = 0.99
     epsilon = 0.1
 
+    #register the signal with Signal handler
+    signal.signal(signal.SIGINT,SignalHandler_SIGINT)
+
+    # suppress scientific notation
+    np.set_printoptions(suppress=True)
+
+    # be able to turn of parallel learning by supplying command line parameter -s
+    parallel_learn = True
+
+    # skip parallel leaening when -s is given as a command line argument
+    args = sys.argv[1:]
+    print(args)
+    if len(args) > 0:
+        if args[0] == '-s':
+            parallel_learn = False
+
+    # Measure starting time
     starting_time = time.time()
 
-    #learn_parallel(num_episodes, alpha, gamma, epsilon, num_processes=num_sections, use_learned=True)
+    if parallel_learn is True:
+        learn_parallel(num_episodes, alpha, gamma, epsilon,
+                       num_processes=num_sections, use_learned=True)
 
     print("\n\n    Parallel learning done, now going sequentially through each section and stitching them together.\n")
 
+    # Reduce alpha and number of episodes per cycle
     num_episodes = 50
     alpha = 0.01
     finishing_angles = None
 
+    # iterate through every section using the finishing angles of the
+    # previous section as the starting angles of the following section
     for i in range(learn_sections):
         finishing_angles = learn(1/num_sections, i, num_episodes, alpha, gamma, epsilon, load=True,
                                  max_num_cycles=500, draw_robot=False, starting_pos=finishing_angles,
                                  save_plot=False, generate_voxels=False)
 
+    # Measure finishing time and calculate total time
     total_time = time.time()-starting_time
 
-    arm = bot.Robot_Arm(section_length=1/num_sections, helix_section=0, voxel_volume=None, num_axis=num_axis)
+    arm = bot.Robot_Arm(section_length=1/num_sections, helix_section=0,
+                        voxel_volume=None, num_axis=num_axis)
     arm.load_learned_from_file()
 
     for i in range(learn_sections-1):
