@@ -207,7 +207,7 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
         done = False
 
         # Until all episodes are done
-        while not done:
+        while (not done and len(states) > 0):
 
             # debug print
             if verbosity_level >= 2:
@@ -234,10 +234,11 @@ def n_step_sarsa(robot, num_episodes, alpha=0.1, gamma=0.99, epsilon=0.1, verbos
             new_action, new_action_index = get_action_epsilon_greedy(robot, epsilon, verbosity_level=verbosity_level)
 
             # Append states and rewards to lists
-            rewards.append(reward)
-            states.append(new_pos)
-            actions.append(new_action)
-            actions_index.append(new_action_index)
+            if done is False:
+                rewards.append(reward)
+                states.append(new_pos)
+                actions.append(new_action)
+                actions_index.append(new_action_index)
 
             if (len(rewards) == n):
                 # calculate n-step reward
@@ -549,6 +550,7 @@ def main():
 
     # suppress scientific notation
     np.set_printoptions(suppress=True)
+    np.set_printoptions(threshold = np.inf)
 
     # be able to turn of parallel learning by supplying command line parameter -s
     parallel_learn = True
@@ -587,6 +589,11 @@ def main():
     arm = bot.Robot_Arm(section_length=1/num_sections, helix_section=0,
                         voxel_volume=None, num_axis=num_axis)
     arm.load_learned_from_file()
+
+    #print(arm.voxels_index_dict[0])
+    #print(arm.Q[0])
+    #print(arm.actions_dict)
+    #print(arm.rewards)
 
     for i in range(learn_sections-1):
         arm.stitch_from_file()

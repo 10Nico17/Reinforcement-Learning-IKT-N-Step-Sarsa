@@ -1012,7 +1012,7 @@ class Robot_Arm:
         mse_z = self.__mean_squared_error(path_z, q_path_z)
 
         # Combine the MSE for each dimension
-        total_mse = (mse_x + mse_y + mse_z) / 3
+        total_mse = (mse_x + mse_y + mse_z)
 
         return total_mse
 
